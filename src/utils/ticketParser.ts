@@ -204,11 +204,49 @@ export class TicketParser {
     integationType?: string;
     errorCode?: string;
     messageId?: string;
+    ticketTitle?: string;
+    customerName?: string;
+    callerOnRecord?: string;
+    personOnPhone?: string;
+    companyName?: string;
+    companyId?: string;
+    phoneNumber?: string;
+    email?: string;
+    issueDescription?: string;
+    messageIds?: string[];
+    documentTypes?: string[];
+    errorDate?: Date;
   } {
     const data: any = {};
     
-    // Extract WebEDI ID (Company ID)
-    const webediIdPatterns = [
+    // Extract Ticket Title
+    const titleMatch = text.match(/ticket\s*title[:\s]*([^\n]+)/i);
+    if (titleMatch) {
+      data.ticketTitle = titleMatch[1].trim();
+    }
+    
+    // Extract Customer Name
+    const customerMatch = text.match(/customer\s*name[:\s]*([^\n]+)/i);
+    if (customerMatch) {
+      data.customerName = customerMatch[1].trim();
+      // Parse caller on record and person on phone
+      const callerPattern = /([^(]+)\s*\(caller on record\)\s*\/\s*([^(]+)\s*\(person on the phone\)/i;
+      const callerDetails = customerMatch[1].match(callerPattern);
+      if (callerDetails) {
+        data.callerOnRecord = callerDetails[1].trim();
+        data.personOnPhone = callerDetails[2].trim();
+      }
+    }
+    
+    // Extract Company Name
+    const companyNameMatch = text.match(/company\s*name[:\s]*([^\n]+)/i);
+    if (companyNameMatch) {
+      data.companyName = companyNameMatch[1].trim();
+    }
+    
+    // Extract Company ID Number
+    const companyIdPatterns = [
+      /company\s*id\s*number[:\s]*(\d+)/i,
       /company\s*id[:\s]*(\d+)/i,
       /webedi\s*id[:\s]*(\d+)/i,
       /customer\s*id[:\s]*(\d+)/i,
@@ -216,32 +254,28 @@ export class TicketParser {
       /\bid[:\s]*(\d{4,})/i // 4+ digit IDs
     ];
     
-    for (const pattern of webediIdPatterns) {
+    for (const pattern of companyIdPatterns) {
       const match = text.match(pattern);
       if (match) {
-        data.webediId = match[1];
+        data.companyId = match[1];
+        data.webediId = match[1]; // Also set webediId for compatibility
         break;
       }
     }
     
-    // Extract control numbers
-    const controlPatterns = [
-      /control\s*number[:\s]*([A-Z0-9]+)/i,
-      /control\s*#[:\s]*([A-Z0-9]+)/i,
-      /message\s*control[:\s]*([A-Z0-9]+)/i,
-      /interchange\s*control[:\s]*(\d+)/i,
-      /ISA13[:\s]*(\d+)/i // ISA13 control number
-    ];
-    
-    for (const pattern of controlPatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        data.controlNumber = match[1];
-        break;
-      }
+    // Extract Phone Number
+    const phoneMatch = text.match(/phone\s*number[:\s]*([^\n]+)/i);
+    if (phoneMatch) {
+      data.phoneNumber = phoneMatch[1].trim();
     }
     
-    // Extract trading partner
+    // Extract Email
+    const emailMatch = text.match(/email[:\s]*([^\s]+@[^\s]+)/i);
+    if (emailMatch) {
+      data.email = emailMatch[1].trim();
+    }
+    
+    // Extract Trading Partner
     const tradingPartnerPatterns = [
       /trading\s*partner[:\s]+([^\n]+)/i,
       /partner[:\s]+([^\n]+)/i,
@@ -256,8 +290,32 @@ export class TicketParser {
       }
     }
     
-    // Extract integration type
+    // Extract Document Types
+    const docTypesMatch = text.match(/document\s*types?[:\s]*([^\n]+)/i);
+    if (docTypesMatch) {
+      const docTypeStr = docTypesMatch[1].trim();
+      data.documentTypes = docTypeStr.match(/\d{3}/g) || [];
+    }
+    
+    // Extract Error/Issue
+    const issueMatch = text.match(/error\/issue[:\s]*([^]*?)(?=\n[A-Z]|$)/i);
+    if (issueMatch) {
+      data.issueDescription = issueMatch[1].trim();
+    }
+    
+    // Extract Message IDs/Control Numbers
+    const messageMatch = text.match(/message\s*ids?\/control\s*numbers?[:\s]*([^\n]+)/i);
+    if (messageMatch) {
+      const messageStr = messageMatch[1].trim();
+      if (messageStr.toLowerCase() !== 'n/a') {
+        data.messageIds = messageStr.split(/[,\s]+/).filter(id => id.length > 0);
+        data.controlNumber = data.messageIds[0]; // Use first as control number
+      }
+    }
+    
+    // Extract Integration Type
     const integrationPatterns = [
+      /integration\s*type[:\s]+([^\n]+)/i,
       /integration[:\s]+([^\n]+)/i,
       /connection\s*type[:\s]+([^\n]+)/i,
       /protocol[:\s]+(AS2|SFTP|FTP|HTTP|API)/i,
@@ -269,6 +327,24 @@ export class TicketParser {
       if (match) {
         data.integationType = match[1].trim();
         break;
+      }
+    }
+    
+    // Extract Error Date
+    const dateMatches = text.match(/since\s+([^,\n]+)|yesterday\s*\(([^)]+)\)/i);
+    if (dateMatches) {
+      const dateStr = dateMatches[1] || dateMatches[2];
+      if (dateStr) {
+        try {
+          data.errorDate = new Date(dateStr);
+        } catch (e) {
+          // If parsing fails, try to extract just the date part
+          const simpleDateMatch = dateStr.match(/(\w+\s+\d{1,2})/);
+          if (simpleDateMatch) {
+            const currentYear = new Date().getFullYear();
+            data.errorDate = new Date(`${simpleDateMatch[1]}, ${currentYear}`);
+          }
+        }
       }
     }
     
@@ -588,6 +664,17 @@ export class TicketParser {
       // Try to detect document type with fallback
       let documentType = this.extractDocumentType(rawText);
       
+      // If we have multiple document types mentioned, use the first valid one
+      if (ediData.documentTypes && ediData.documentTypes.length > 0) {
+        const firstValidType = ediData.documentTypes.find(type => 
+          ['810', '850', '856', '855', '997'].includes(type)
+        );
+        if (firstValidType) {
+          documentType = firstValidType as DocumentType;
+          console.log('Using document type from explicit list:', documentType);
+        }
+      }
+      
       if (!documentType) {
         console.log('No document type found, attempting fallback detection...');
         
@@ -626,9 +713,9 @@ export class TicketParser {
       const result = {
         id: ticketId || ediData.webediId || `ticket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         documentType,
-        supplier,
+        supplier: ediData.companyName || supplier,
         buyer: buyer !== 'Unknown Buyer' ? buyer : (ediData.tradingPartner || buyer),
-        errorType,
+        errorType: ediData.issueDescription ? 'CUSTOM_ERROR' : errorType,
         errorCode: errorCode || ediData.errorCode,
         affectedPOs,
         action,
@@ -638,7 +725,21 @@ export class TicketParser {
         webediId: ediData.webediId,
         controlNumber: ediData.controlNumber,
         tradingPartner: ediData.tradingPartner,
-        integationType: ediData.integationType
+        integationType: ediData.integationType,
+        // Customer Information
+        ticketTitle: ediData.ticketTitle,
+        customerName: ediData.customerName,
+        callerOnRecord: ediData.callerOnRecord,
+        personOnPhone: ediData.personOnPhone,
+        companyName: ediData.companyName,
+        companyId: ediData.companyId,
+        phoneNumber: ediData.phoneNumber,
+        email: ediData.email,
+        // Issue Details
+        issueDescription: ediData.issueDescription,
+        messageIds: ediData.messageIds,
+        documentTypes: ediData.documentTypes,
+        errorDate: ediData.errorDate
       };
       
       console.log('Final parsed result:', result);

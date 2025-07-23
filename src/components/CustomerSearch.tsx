@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TicketService } from '../services/ticketService';
-import { Company } from '../lib/supabase';
+import { Company, isSupabaseConfigured } from '../lib/supabase';
+import { LocalCustomerService } from '../services/localCustomerService';
+import { ExtendedCompany } from '../types/customer';
 
 interface CustomerSearchProps {
-  onSelectCompany: (company: Company) => void;
+  onSelectCompany: (company: Company | ExtendedCompany) => void;
+  onAutoFill?: (data: any) => void;
 }
 
-const CustomerSearch: React.FC<CustomerSearchProps> = ({ onSelectCompany }) => {
+const CustomerSearch: React.FC<CustomerSearchProps> = ({ onSelectCompany, onAutoFill }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<(Company | ExtendedCompany)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
@@ -17,7 +20,19 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({ onSelectCompany }) => {
     const delayDebounce = setTimeout(async () => {
       if (searchTerm.length >= 2) {
         setIsSearching(true);
-        const results = await TicketService.searchCompanies(searchTerm);
+        
+        let results: (Company | ExtendedCompany)[] = [];
+        
+        // Try Supabase first if configured
+        if (isSupabaseConfigured()) {
+          results = await TicketService.searchCompanies(searchTerm);
+        }
+        
+        // If no results from Supabase or not configured, use local data
+        if (results.length === 0) {
+          results = await LocalCustomerService.searchLocalCompanies(searchTerm);
+        }
+        
         setCompanies(results);
         setIsSearching(false);
         setShowResults(true);
@@ -30,10 +45,18 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({ onSelectCompany }) => {
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
-  const handleSelectCompany = (company: Company) => {
+  const handleSelectCompany = async (company: Company | ExtendedCompany) => {
     onSelectCompany(company);
     setSearchTerm(company.name);
     setShowResults(false);
+    
+    // Auto-fill data if callback provided
+    if (onAutoFill) {
+      const autoFillData = await LocalCustomerService.getAutoFillData(company.name);
+      if (autoFillData) {
+        onAutoFill(autoFillData);
+      }
+    }
   };
 
   return (
@@ -72,12 +95,22 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({ onSelectCompany }) => {
                 whileHover={{ backgroundColor: 'rgba(39, 39, 42, 0.8)' }}
               >
                 <div className="text-white font-medium">{company.name}</div>
-                {company.edi_id && (
-                  <div className="text-zinc-400 text-sm">EDI ID: {company.edi_id}</div>
+                {(company.edi_id || ('webTPID' in company && company.webTPID)) && (
+                  <div className="text-zinc-400 text-sm">
+                    ID: {company.edi_id || ('webTPID' in company ? company.webTPID : '')}
+                  </div>
+                )}
+                {'contactName' in company && company.contactName && (
+                  <div className="text-zinc-400 text-sm">Contact: {company.contactName}</div>
                 )}
                 <div className="text-zinc-500 text-xs mt-1">
-                  Type: {company.company_type}
+                  {company.contact_email || ('email' in company && typeof company.email === 'string' ? company.email : '')}
                 </div>
+                {'status' in company && company.status && (
+                  <div className="text-zinc-500 text-xs">
+                    Status: {company.status}
+                  </div>
+                )}
               </motion.button>
             ))}
           </motion.div>

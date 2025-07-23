@@ -2,9 +2,11 @@ import { BaseProcessor, ProcessResult } from './BaseProcessor';
 import { TextProcessor } from './TextProcessor';
 import { PDFProcessor } from './PDFProcessor';
 import { ImageProcessor } from './ImageProcessor';
+import { GeminiImageProcessor } from './GeminiImageProcessor';
 import { CSVProcessor } from './CSVProcessor';
 import { VideoProcessor } from './VideoProcessor';
 import { detectFileType, SupportedFileType } from '../fileTypeDetector';
+import { config } from '../../config/environment';
 
 export type { ProcessResult } from './BaseProcessor';
 
@@ -25,7 +27,10 @@ export class FileProcessorFactory {
         return new PDFProcessor(file);
       
       case 'image':
-        return new ImageProcessor(file);
+        // Use Gemini-enabled processor if AI is enabled
+        return config.ENABLE_AI_INTEGRATION 
+          ? new GeminiImageProcessor(file)
+          : new ImageProcessor(file);
       
       case 'csv':
         return new CSVProcessor(file);

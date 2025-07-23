@@ -10,9 +10,13 @@ import TicketInfoHeader from './components/TicketInfoHeader';
 import CustomerSearch from './components/CustomerSearch';
 import CustomerProfile from './components/CustomerProfile';
 import RecentTickets from './components/RecentTickets';
+import CustomerInfoBadge from './components/CustomerInfoBadge';
 import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore } from './store/workflowStore';
 import { Company, Ticket } from './lib/supabase';
 import { isSupabaseConfigured } from './lib/supabase';
+import AIStatusIndicator from './components/AIStatusIndicator';
+import { LocalCustomerService } from './services/localCustomerService';
+import { useCustomerData } from './hooks/useCustomerData';
 
 const TicketDetails: React.FC = () => {
   const ticket = useParsedTicket();
@@ -83,6 +87,9 @@ function App() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCustomerProfile, setShowCustomerProfile] = useState(false);
   const { parseTicket } = useWorkflowStore();
+  
+  // Get customer data for the current ticket
+  const { customerData } = useCustomerData(ticket?.companyName || ticket?.companyId);
 
   useEffect(() => {
     if (workflow) {
@@ -149,6 +156,20 @@ function App() {
               exit={{ opacity: 0, y: -20 }}
             >
               <TicketInfoHeader ticket={ticket} />
+              
+              {/* Customer Info Badge - Show if customer data is available */}
+              {(ticket.companyId || ticket.companyName) && (
+                <div className="mt-4">
+                  <CustomerInfoBadge
+                    companyName={ticket.companyName}
+                    companyId={ticket.companyId}
+                    customerName={ticket.customerName || ticket.callerOnRecord}
+                    email={ticket.email}
+                    phone={ticket.phoneNumber}
+                    status={customerData?.status}
+                  />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -325,6 +346,8 @@ function App() {
           </p>
         </div>
       </footer>
+      
+      <AIStatusIndicator />
     </div>
   );
 }

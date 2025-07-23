@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@reactflow/background": "^11.3.0",
     "@reactflow/controls": "^11.2.0",
     "@reactflow/core": "^11.10.1",

@@ -11,6 +11,9 @@ export const config = {
   ENABLE_AI_INTEGRATION: process.env.REACT_APP_ENABLE_AI_INTEGRATION === 'true',
   ENABLE_ANALYTICS: process.env.REACT_APP_ENABLE_ANALYTICS === 'true',
   
+  // Gemini AI Configuration
+  GEMINI_API_KEY: process.env.REACT_APP_GEMINI_API_KEY || '',
+  
   // App Configuration
   APP_NAME: process.env.REACT_APP_NAME || 'WebEDI Visual Workflow',
   APP_VERSION: process.env.REACT_APP_VERSION || '1.0.0',

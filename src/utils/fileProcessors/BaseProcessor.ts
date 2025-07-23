@@ -1,8 +1,11 @@
+import { ParsedTicket } from '../../types';
+
 export interface ProcessResult {
   success: boolean;
   text?: string;
   error?: string;
   metadata?: Record<string, any>;
+  parsedTicket?: ParsedTicket;
 }
 
 export abstract class BaseProcessor {

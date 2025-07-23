@@ -19,6 +19,8 @@ WebEDI Visual Workflow is a specialized tool designed to help EDI support teams 
 - **📊 Real-time Processing**: Instant visualization generation with < 500ms processing time
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 - **🎨 Interactive Interface**: Zoom, pan, and click nodes for detailed information
+- **🏢 Customer Database Integration**: Built-in customer database with auto-completion and information auto-fill
+- **🤖 AI-Powered Analysis**: Optional Gemini 2.5 Pro integration for advanced ticket parsing
 
 ## 🛠️ Technology Stack
 
@@ -180,6 +182,51 @@ webedi-visual-workflow/
 └── README.md          # This file
 ```
 
+## 🏢 Customer Database Integration
+
+The application includes a built-in customer database with over 100 pre-loaded companies. This feature provides:
+
+### Auto-Completion Features
+- **Company Search**: Type 2+ characters to search through the database
+- **Smart Matching**: Fuzzy search that finds companies by name or ID
+- **Auto-Fill**: Automatically populates customer information when a company is selected
+
+### Customer Information Tracked
+- Company Name and WebTP ID
+- Contact Name and Details
+- Email and Phone Numbers
+- Customer Status (Active/Inactive/Pending)
+- Signup and Contact Dates
+
+### Using the Customer Database
+1. Click "Search Customer Database" in the ticket input area
+2. Start typing a company name or ID
+3. Select from the dropdown to auto-fill customer information
+4. The parser will automatically enhance tickets with matching customer data
+
+### Database Integration
+- Works offline without external database dependencies
+- Automatically enhances parsed tickets with customer information
+- Falls back to Supabase if configured for extended functionality
+
+## 🤖 AI Integration (Optional)
+
+The application supports Google Gemini 2.5 Pro for advanced ticket parsing:
+
+### Setup
+1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com)
+2. Add to your `.env` file:
+   ```
+   REACT_APP_ENABLE_AI_INTEGRATION=true
+   REACT_APP_GEMINI_API_KEY=your_api_key_here
+   ```
+
+### AI Features
+- Enhanced ticket parsing with natural language understanding
+- Image analysis for screenshot-based tickets
+- Higher accuracy for complex ticket formats
+- Automatic fallback to regex parser if AI is unavailable
+
 ## 🔧 Development
 
 ### Available Scripts
@@ -194,6 +241,13 @@ webedi-visual-workflow/
 1. Add the document type to `DocumentType` in `src/types/index.ts`
 2. Add error patterns to `ERROR_PATTERNS` in `src/utils/ticketParser.ts`
 3. Add workflow steps to `baseFlows` in `src/store/workflowStore.ts`
+
+### Adding New Customers
+
+To add customers to the local database:
+1. Edit `src/data/customerData.ts`
+2. Add new entries to the `customerDatabase` array
+3. Follow the existing `CustomerData` interface structure
 
 ### Customizing Visual Style
 

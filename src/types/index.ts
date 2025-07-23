@@ -20,6 +20,21 @@ export interface ParsedTicket {
   controlNumber?: string;
   tradingPartner?: string;
   integationType?: string;
+  // Customer Information
+  ticketTitle?: string;
+  customerName?: string;
+  callerOnRecord?: string;
+  personOnPhone?: string;
+  companyName?: string;
+  companyId?: string;
+  phoneNumber?: string;
+  email?: string;
+  // Issue Details
+  issueDescription?: string;
+  messageIds?: string[];
+  // Additional context
+  documentTypes?: string[];
+  errorDate?: Date;
 }
 
 export interface WorkflowNode {

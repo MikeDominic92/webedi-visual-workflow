@@ -3,43 +3,55 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkflowStore } from '../store/workflowStore';
+import CustomerSearch from './CustomerSearch';
+import { Company } from '../lib/supabase';
+import { ExtendedCompany } from '../types/customer';
+import { CustomerAutoFillData } from '../types/customer';
 
 const sampleTickets = {
   invoice: `Ticket Title: 5064 Zero Egg Count - Outbound 810 Invoices rejected by Chewy.com (Duplicate Invoice Number)
-IMMEDIATE ACTIONS:
-COMM -> Email Tim Davis (tdavis@zeroeggcount.com), CC Marta Brito (mbrito@chewy.com).
-COMM -> State the exact rejection reason provided by Chewy: "This invoice number already exists. You must provide a unique invoice number. (AP-810776)".
-COMM -> List the affected PO Numbers: RS41745897, RS41732724, RS41732712.
-COMM -> Instruct the customer to log into WebEDI, find the original invoices, and resubmit them with a new, unique invoice number (e.g., add "-1" to the end of the original number).
-VALIDATE FIX:
-P4.0 -> Transactions -> Confirm a new 810 has been successfully sent by the user for the affected POs.
-The transaction is no longer on a subsequent rejection report from Chewy.`,
+Customer name: Tim Davis (caller on record) / Tim Davis (person on the phone)
+Company name: Zero Egg Count
+Company ID number: 5064
+Phone number: N/A
+Email: tdavis@zeroeggcount.com
+Trading Partner: Chewy.com
+Document Types: 810
+Error/Issue: Invoices rejected with error "This invoice number already exists. You must provide a unique invoice number. (AP-810776)". Customer needs to log into WebEDI, find the original invoices, and resubmit them with a new, unique invoice number (e.g., add "-1" to the end of the original number).
+Message IDs/Control Numbers: AP-810776
+Integration Type: WebEDI
+Affected PO Numbers: RS41745897, RS41732724, RS41732712`,
 
-  purchase: `3892 Acme Corp - 850 Purchase Order rejected by Target Corporation
-Error: Item not found in catalog (ERR-CAT-404)
-ISSUE DETAILS:
-- Affected PO Numbers: TG87654321, TG87654322
-- Invalid SKUs: ACM-12345, ACM-12346
-- Order Date: 2024-01-20
-RESOLUTION STEPS:
-1. Contact buyer@target.com to verify correct item codes
-2. Check if items have been discontinued or replaced
-3. Update catalog with new SKU mappings
-4. Resubmit order with corrected item codes`,
+  purchase: `Ticket Title: 3892 Acme Corp - 850 Purchase Order rejected by Target Corporation
+Customer name: John Smith (caller on record) / Sarah Johnson (person on the phone)
+Company name: Acme Corp
+Company ID number: 3892
+Phone number: (555) 123-4567
+Email: orders@acmecorp.com
+Trading Partner: Target Corporation
+Document Types: 850
+Error/Issue: Purchase orders rejected with error "Item not found in catalog (ERR-CAT-404)". Invalid SKUs ACM-12345 and ACM-12346 are not recognized in Target's system. Need to verify correct item codes with buyer@target.com and check if items have been discontinued or replaced.
+Message IDs/Control Numbers: ERR-CAT-404
+Integration Type: AS2
+Affected PO Numbers: TG87654321, TG87654322`,
 
-  shipment: `7235 Global Shipping Inc - 856 ASN Rejected by Amazon (Invalid Tracking)
-Rejection Reason: Carrier code 'GLSP' not recognized in system
-Error Code: (AMZ-856-001)
-Affected PO Numbers: AZ99887766, AZ99887767, AZ99887768
-CARRIER DETAILS:
-- Tracking Numbers: GLSP1234567890, GLSP1234567891
-- Expected Format: Standard carrier codes only (UPS, FEDEX, USPS)
-ACTION REQUIRED:
-Map GLSP carrier code to approved carrier in system or use standard carrier for shipment.`
+  shipment: `Ticket Title: 4952 Magnolia Brush - SFTP Process Leaving Original Files
+Customer name: Tanna Meals (caller on record) / Greta (person on the phone)
+Company name: Magnolia Brush
+Company ID number: 4952
+Phone number: N/A
+Email: tanna@magnoliabrush.com
+Trading Partner: All
+Document Types: All inbound orders (e.g., 850) and outbound (e.g., 810 invoices)
+Error/Issue: Since yesterday (July 17), their ERP (Global Shop) is processing inbound orders but leaving the original "unbuilt" file in the SFTP directory, leading to duplicate files. It is also happening for outbound documents. This indicates their internal script is failing to perform the cleanup step after processing.
+Message IDs/Control Numbers: N/A
+Integration Type: SFTP with Global Shop ERP`
 };
 
 const TicketInput: React.FC = () => {
   const [ticketText, setTicketText] = useState('');
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | ExtendedCompany | null>(null);
   const { parseTicket, isProcessing, error, clearWorkflow } = useWorkflowStore();
 
   const handleSubmit = () => {
@@ -53,6 +65,66 @@ const TicketInput: React.FC = () => {
     clearWorkflow();
   };
 
+  const handleAutoFill = (data: CustomerAutoFillData) => {
+    // Parse existing ticket text or create new template
+    const lines = ticketText.split('\n');
+    const updatedLines: string[] = [];
+    
+    // Track which fields have been updated
+    let companyNameUpdated = false;
+    let companyIdUpdated = false;
+    let customerNameUpdated = false;
+    let emailUpdated = false;
+    let phoneUpdated = false;
+    
+    // Update existing fields or add new ones
+    lines.forEach(line => {
+      if (line.toLowerCase().includes('company name:') && !companyNameUpdated) {
+        updatedLines.push(`Company name: ${data.companyName}`);
+        companyNameUpdated = true;
+      } else if (line.toLowerCase().includes('company id') && !companyIdUpdated) {
+        updatedLines.push(`Company ID number: ${data.companyId}`);
+        companyIdUpdated = true;
+      } else if (line.toLowerCase().includes('customer name:') && !customerNameUpdated) {
+        updatedLines.push(`Customer name: ${data.customerName} (caller on record) / ${data.personOnPhone || data.customerName} (person on the phone)`);
+        customerNameUpdated = true;
+      } else if (line.toLowerCase().includes('email:') && !emailUpdated) {
+        updatedLines.push(`Email: ${data.email}`);
+        emailUpdated = true;
+      } else if (line.toLowerCase().includes('phone') && !phoneUpdated) {
+        updatedLines.push(`Phone number: ${data.phoneNumber}`);
+        phoneUpdated = true;
+      } else {
+        updatedLines.push(line);
+      }
+    });
+    
+    // Add missing fields at the beginning if not found
+    const fieldsToAdd: string[] = [];
+    if (!customerNameUpdated) {
+      fieldsToAdd.push(`Customer name: ${data.customerName} (caller on record) / ${data.personOnPhone || data.customerName} (person on the phone)`);
+    }
+    if (!companyNameUpdated) {
+      fieldsToAdd.push(`Company name: ${data.companyName}`);
+    }
+    if (!companyIdUpdated) {
+      fieldsToAdd.push(`Company ID number: ${data.companyId}`);
+    }
+    if (!phoneUpdated) {
+      fieldsToAdd.push(`Phone number: ${data.phoneNumber}`);
+    }
+    if (!emailUpdated) {
+      fieldsToAdd.push(`Email: ${data.email}`);
+    }
+    
+    // Combine fields
+    const finalText = fieldsToAdd.length > 0 
+      ? fieldsToAdd.join('\n') + (updatedLines.length > 0 ? '\n' + updatedLines.join('\n') : '')
+      : updatedLines.join('\n');
+    
+    setTicketText(finalText);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -64,6 +136,36 @@ const TicketInput: React.FC = () => {
       </h2>
       
       <div className="space-y-4">
+        <div>
+          <button
+            onClick={() => setShowCustomerSearch(!showCustomerSearch)}
+            className="text-sm text-zinc-400 hover:text-white transition-colors mb-2"
+          >
+            {showCustomerSearch ? '− Hide' : '+ Search'} Customer Database
+          </button>
+          
+          {showCustomerSearch && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-4"
+            >
+              <CustomerSearch
+                onSelectCompany={(company) => {
+                  setSelectedCompany(company);
+                  setShowCustomerSearch(false);
+                }}
+                onAutoFill={handleAutoFill}
+              />
+              {selectedCompany && (
+                <div className="mt-2 p-2 bg-zinc-800 rounded text-sm text-zinc-300">
+                  Selected: {selectedCompany.name}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
         <div>
           <label htmlFor="ticket" className="block text-sm font-medium text-zinc-300 mb-2">
             Paste your EDI ticket below:

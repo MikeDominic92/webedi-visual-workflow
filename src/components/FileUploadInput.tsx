@@ -76,9 +76,17 @@ const FileUploadInput: React.FC = () => {
       // Update progress
       updateFileStatus(uploadedFile.id, 'processing', 80);
       
-      if (result.success && result.text) {
-        // Update to success
-        updateFileStatus(uploadedFile.id, 'success', 100, result.text);
+      if (result.success) {
+        // Check if we have a parsed ticket from AI
+        if (result.parsedTicket) {
+          // Update to success with parsed ticket text
+          updateFileStatus(uploadedFile.id, 'success', 100, result.parsedTicket.rawText || result.text || 'AI processed');
+        } else if (result.text) {
+          // Update to success with extracted text
+          updateFileStatus(uploadedFile.id, 'success', 100, result.text);
+        } else {
+          throw new Error('No text extracted from file');
+        }
       } else {
         throw new Error(result.error || 'Failed to extract text from file');
       }

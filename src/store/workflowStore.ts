@@ -2,11 +2,11 @@
 
 import { create } from 'zustand';
 import { WorkflowState, ParsedTicket, VisualWorkflow, WorkflowNode, WorkflowEdge } from '../types';
-import { TicketParser } from '../utils/ticketParser';
+import { AITicketParser } from '../utils/aiTicketParser';
 import { TicketService } from '../services/ticketService';
 import { Ticket } from '../lib/supabase';
 
-const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
+const generateWorkflowFromTicket = (ticket: ParsedTicket, confidence?: number): VisualWorkflow => {
   const nodes: WorkflowNode[] = [];
   const edges: WorkflowEdge[] = [];
   
@@ -126,7 +126,7 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
     metadata: {
       documentType: ticket.documentType,
       generatedAt: new Date(),
-      confidence: TicketParser.getParsingConfidence(ticket)
+      confidence: confidence || 0.5
     }
   };
 };
@@ -153,7 +153,7 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
       await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('Attempting to parse ticket...');
-      const parsedTicket = TicketParser.parse(rawText);
+      const parsedTicket = await AITicketParser.parse(rawText);
       
       if (!parsedTicket) {
         console.error('Ticket parsing returned null');
@@ -175,7 +175,11 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
 
   generateWorkflow: async (ticket: ParsedTicket) => {
     try {
-      const workflow = generateWorkflowFromTicket(ticket);
+      // Get confidence score asynchronously
+      const confidence = await AITicketParser.getParsingConfidence(ticket);
+      
+      // Generate workflow with AI confidence
+      const workflow = generateWorkflowFromTicket(ticket, confidence);
       set({ 
         workflow, 
         isProcessing: false,
