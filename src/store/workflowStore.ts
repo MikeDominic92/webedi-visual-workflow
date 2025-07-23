@@ -134,7 +134,10 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket, confidence?: number): 
 interface ExtendedWorkflowState extends WorkflowState {
   savedTicket: Ticket | null;
   recentTickets: Ticket[];
+  isEditMode: boolean;
   loadRecentTickets: () => Promise<void>;
+  setEditMode: (enabled: boolean) => void;
+  updateTicket: (updates: Partial<ParsedTicket>) => void;
 }
 
 export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
@@ -144,6 +147,7 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
   error: null,
   savedTicket: null,
   recentTickets: [],
+  isEditMode: false,
 
   parseTicket: async (rawText: string) => {
     console.log('parseTicket called with text length:', rawText.length);
@@ -220,6 +224,36 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
     } catch (error) {
       console.error('Error loading recent tickets:', error);
     }
+  },
+
+  setEditMode: (enabled: boolean) => {
+    set({ isEditMode: enabled });
+  },
+
+  updateTicket: (updates: Partial<ParsedTicket>) => {
+    const currentTicket = get().currentTicket;
+    if (currentTicket) {
+      const updatedTicket = { ...currentTicket, ...updates };
+      
+      // Update ticket title if company info changed
+      if (updates.companyId || updates.companyName || updates.errorType) {
+        const errorDescription = updatedTicket.errorType.replace(/_/g, ' ').toLowerCase()
+          .replace(/\b\w/g, l => l.toUpperCase());
+        
+        updatedTicket.ticketTitle = [
+          updatedTicket.companyId,
+          updatedTicket.companyName,
+          updatedTicket.documentType ? `${updatedTicket.documentType} ${errorDescription}` : errorDescription
+        ].filter(Boolean).join(' - ');
+      }
+      
+      set({ currentTicket: updatedTicket });
+      
+      // Regenerate workflow if needed
+      if (updates.documentType || updates.errorType) {
+        get().generateWorkflow(updatedTicket);
+      }
+    }
   }
 }));
 
@@ -241,4 +275,8 @@ export const useRecentTickets = () => {
 
 export const useSavedTicket = () => {
   return useWorkflowStore(state => state.savedTicket);
+};
+
+export const useEditMode = () => {
+  return useWorkflowStore(state => state.isEditMode);
 };

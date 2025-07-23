@@ -7,11 +7,12 @@ import SubwayMapVisualizer from './components/SubwayMapVisualizer';
 import ExportMenu from './components/ExportMenu';
 import ErrorPatternLibrary from './components/ErrorPatternLibrary';
 import TicketInfoHeader from './components/TicketInfoHeader';
+import EditableTicketHeader from './components/EditableTicketHeader';
 import CustomerSearch from './components/CustomerSearch';
 import CustomerProfile from './components/CustomerProfile';
 import RecentTickets from './components/RecentTickets';
 import CustomerInfoBadge from './components/CustomerInfoBadge';
-import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore } from './store/workflowStore';
+import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore, useEditMode } from './store/workflowStore';
 import { Company, Ticket } from './lib/supabase';
 import { isSupabaseConfigured } from './lib/supabase';
 import AIStatusIndicator from './components/AIStatusIndicator';
@@ -82,11 +83,12 @@ function App() {
   const workflow = useWorkflow();
   const ticket = useParsedTicket();
   const error = useWorkflowError();
+  const isEditMode = useEditMode();
   const workflowRef = useRef<HTMLDivElement>(null);
   const [showErrorLibrary, setShowErrorLibrary] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCustomerProfile, setShowCustomerProfile] = useState(false);
-  const { parseTicket } = useWorkflowStore();
+  const { parseTicket, setEditMode } = useWorkflowStore();
   
   // Get customer data for the current ticket
   const { customerData } = useCustomerData(ticket?.companyName || ticket?.companyId);
@@ -155,20 +157,42 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <TicketInfoHeader ticket={ticket} />
-              
-              {/* Customer Info Badge - Show if customer data is available */}
-              {(ticket.companyId || ticket.companyName) && (
-                <div className="mt-4">
-                  <CustomerInfoBadge
-                    companyName={ticket.companyName}
-                    companyId={ticket.companyId}
-                    customerName={ticket.customerName || ticket.callerOnRecord}
-                    email={ticket.email}
-                    phone={ticket.phoneNumber}
-                    status={customerData?.status}
-                  />
+              {/* Edit Mode Toggle Button */}
+              {!isEditMode && (
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span className="text-sm font-medium">Edit</span>
+                  </button>
                 </div>
+              )}
+              
+              {/* Conditionally render regular or editable header */}
+              {isEditMode ? (
+                <EditableTicketHeader ticket={ticket} />
+              ) : (
+                <>
+                  <TicketInfoHeader ticket={ticket} />
+                  
+                  {/* Customer Info Badge - Show if customer data is available */}
+                  {(ticket.companyId || ticket.companyName) && (
+                    <div className="mt-4">
+                      <CustomerInfoBadge
+                        companyName={ticket.companyName}
+                        companyId={ticket.companyId}
+                        customerName={ticket.customerName || ticket.callerOnRecord}
+                        email={ticket.email}
+                        phone={ticket.phoneNumber}
+                        status={customerData?.status}
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           )}
