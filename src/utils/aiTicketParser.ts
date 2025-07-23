@@ -42,6 +42,30 @@ export class AITicketParser {
     // Enhance with customer data
     if (parsedTicket) {
       parsedTicket = await LocalCustomerService.enhanceTicketWithCustomerData(parsedTicket);
+      
+      // Generate standardized ticket title if we have company info
+      if (parsedTicket.companyId && parsedTicket.companyName && parsedTicket.errorType) {
+        // Create a more descriptive error message for the title
+        let errorDescription = parsedTicket.errorType;
+        if (parsedTicket.issueDescription) {
+          // Extract key issue from description
+          const issueMatch = parsedTicket.issueDescription.match(/rejected.*?(?:\.|$)|error.*?(?:\.|$)|failed.*?(?:\.|$)/i);
+          if (issueMatch) {
+            errorDescription = issueMatch[0].replace(/\.$/, '');
+          }
+        } else {
+          // Make error type more readable
+          errorDescription = parsedTicket.errorType.replace(/_/g, ' ').toLowerCase()
+            .replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        parsedTicket.ticketTitle = TicketParser.generateTicketTitle(
+          parsedTicket.companyId,
+          parsedTicket.companyName,
+          errorDescription,
+          parsedTicket.documentType
+        );
+      }
     }
     
     return parsedTicket;

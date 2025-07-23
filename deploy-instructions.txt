@@ -1,0 +1,39 @@
+# Deployment Instructions for WebEDI Visual Workflow
+
+## Step 1: Create GitHub Repository
+1. Go to https://github.com/new
+2. Repository name: webedi-visual-workflow
+3. Make it Public
+4. Do NOT initialize with README
+5. Click "Create repository"
+
+## Step 2: Push Your Code
+Replace YOUR_USERNAME with your GitHub username and run:
+
+```bash
+cd webedi-visual-workflow
+git remote add origin https://github.com/YOUR_USERNAME/webedi-visual-workflow.git
+git push -u origin master
+```
+
+## Step 3: Deploy to Netlify
+1. Go to https://app.netlify.com
+2. Click "Add new site" → "Import an existing project"
+3. Choose GitHub
+4. Authorize Netlify to access your GitHub
+5. Select the "webedi-visual-workflow" repository
+6. Click "Deploy site"
+
+## Your Repository Contains:
+- Customer database with 100+ companies
+- Auto-completion search functionality
+- AI-powered ticket parsing (Gemini 2.5 Pro ready)
+- Enhanced ticket parser with customer data enrichment
+- Subway map visualization for EDI workflows
+
+## Build Settings (already configured in netlify.toml):
+- Build command: npm run build
+- Publish directory: build
+- Node version: 18
+
+The site will be live in 2-3 minutes after deployment starts!

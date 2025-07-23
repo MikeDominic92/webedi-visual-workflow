@@ -710,6 +710,31 @@ export class TicketParser {
       const { errorType, errorCode } = this.detectErrorType(rawText, documentType);
       const action = this.detectAction(rawText);
 
+      // Generate standardized ticket title if not provided or update existing one
+      let ticketTitle = ediData.ticketTitle;
+      if (!ticketTitle || (ediData.companyId && ediData.companyName)) {
+        // Create a more descriptive error message for the title
+        let errorDescription = errorType;
+        if (ediData.issueDescription) {
+          // Extract key issue from description
+          const issueMatch = ediData.issueDescription.match(/rejected.*?(?:\.|$)|error.*?(?:\.|$)|failed.*?(?:\.|$)/i);
+          if (issueMatch) {
+            errorDescription = issueMatch[0].replace(/\.$/, '');
+          }
+        } else {
+          // Make error type more readable
+          errorDescription = errorType.replace(/_/g, ' ').toLowerCase()
+            .replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        ticketTitle = this.generateTicketTitle(
+          ediData.companyId,
+          ediData.companyName,
+          errorDescription,
+          documentType
+        );
+      }
+
       const result = {
         id: ticketId || ediData.webediId || `ticket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         documentType,
@@ -727,7 +752,7 @@ export class TicketParser {
         tradingPartner: ediData.tradingPartner,
         integationType: ediData.integationType,
         // Customer Information
-        ticketTitle: ediData.ticketTitle,
+        ticketTitle,
         customerName: ediData.customerName,
         callerOnRecord: ediData.callerOnRecord,
         personOnPhone: ediData.personOnPhone,
@@ -751,6 +776,32 @@ export class TicketParser {
       console.log('Raw text that failed:', rawText.substring(0, 1000));
       return null;
     }
+  }
+
+  /**
+   * Generate a standardized ticket title
+   */
+  public static generateTicketTitle(companyId: string | undefined, companyName: string | undefined, errorType: string, documentType?: string): string {
+    const parts: string[] = [];
+    
+    // Add Company ID if available
+    if (companyId) {
+      parts.push(companyId);
+    }
+    
+    // Add Company Name
+    if (companyName) {
+      parts.push(companyName);
+    }
+    
+    // Add issue topic
+    const issueTopic = documentType 
+      ? `${documentType} ${errorType}`
+      : errorType;
+    
+    parts.push(issueTopic);
+    
+    return parts.join(' - ');
   }
 
   public static getParsingConfidence(ticket: ParsedTicket): number {

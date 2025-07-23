@@ -9,7 +9,7 @@ import { ExtendedCompany } from '../types/customer';
 import { CustomerAutoFillData } from '../types/customer';
 
 const sampleTickets = {
-  invoice: `Ticket Title: 5064 Zero Egg Count - Outbound 810 Invoices rejected by Chewy.com (Duplicate Invoice Number)
+  invoice: `Ticket Title: 5064 - Zero Egg Count - 810 Invoices rejected by Chewy.com (Duplicate Invoice Number)
 Customer name: Tim Davis (caller on record) / Tim Davis (person on the phone)
 Company name: Zero Egg Count
 Company ID number: 5064
@@ -22,7 +22,7 @@ Message IDs/Control Numbers: AP-810776
 Integration Type: WebEDI
 Affected PO Numbers: RS41745897, RS41732724, RS41732712`,
 
-  purchase: `Ticket Title: 3892 Acme Corp - 850 Purchase Order rejected by Target Corporation
+  purchase: `Ticket Title: 3892 - Acme Corp - 850 Purchase Order rejected by Target Corporation
 Customer name: John Smith (caller on record) / Sarah Johnson (person on the phone)
 Company name: Acme Corp
 Company ID number: 3892
@@ -35,7 +35,7 @@ Message IDs/Control Numbers: ERR-CAT-404
 Integration Type: AS2
 Affected PO Numbers: TG87654321, TG87654322`,
 
-  shipment: `Ticket Title: 4952 Magnolia Brush - SFTP Process Leaving Original Files
+  shipment: `Ticket Title: 4952 - Magnolia Brush - SFTP Process Leaving Original Files
 Customer name: Tanna Meals (caller on record) / Greta (person on the phone)
 Company name: Magnolia Brush
 Company ID number: 4952
