@@ -101,24 +101,178 @@ const KNOWN_BUYERS = [
 ];
 
 export class TicketParser {
+  private static isZendeskTicket(text: string): boolean {
+    return /zendesk|ticket\s*#|assignee|requester|cleo\.zendesk/i.test(text);
+  }
+
+  private static extractZendeskFields(text: string): {
+    ticketNumber?: string;
+    requester?: string;
+    assignee?: string;
+    subject?: string;
+    priority?: string;
+    tags?: string[];
+  } {
+    const fields: any = {};
+    
+    // Extract ticket number
+    const ticketMatch = text.match(/ticket\s*#(\d+)/i) || text.match(/#(\d+)/);
+    if (ticketMatch) fields.ticketNumber = ticketMatch[1];
+    
+    // Extract requester
+    const requesterMatch = text.match(/requester[:\s]+([^\n]+)/i);
+    if (requesterMatch) fields.requester = requesterMatch[1].trim();
+    
+    // Extract assignee
+    const assigneeMatch = text.match(/assignee[:\s]+([^\n]+)/i);
+    if (assigneeMatch) fields.assignee = assigneeMatch[1].trim();
+    
+    // Extract subject
+    const subjectMatch = text.match(/subject[:\s]+([^\n]+)/i);
+    if (subjectMatch) fields.subject = subjectMatch[1].trim();
+    
+    // Extract priority
+    const priorityMatch = text.match(/priority[:\s]+(\w+)/i);
+    if (priorityMatch) fields.priority = priorityMatch[1];
+    
+    // Extract tags
+    const tagsMatch = text.match(/tags[:\s]+([^\n]+)/i);
+    if (tagsMatch) {
+      fields.tags = tagsMatch[1].split(/[,\s]+/).filter(t => t.length > 0);
+    }
+    
+    return fields;
+  }
+
   private static extractDocumentType(text: string): DocumentType | null {
     // Look for document type in various formats
     const patterns = [
       /\b(810|850|856|855|997)\b/,
       /EDI\s*(810|850|856|855|997)/i,
       /document\s*type[:\s]*(810|850|856|855|997)/i,
-      /(810|850|856|855|997)\s*(invoice|order|asn|shipment|acknowledgment)/i
+      /(810|850|856|855|997)\s*(invoice|order|asn|shipment|acknowledgment)/i,
+      /EDI\s*(\d{3})/i, // Generic EDI document type
+      /X12[:\s]*(\d{3})/i // X12 format
     ];
 
     for (const pattern of patterns) {
       const match = text.match(pattern);
       if (match) {
         const docType = match[1] || match[2];
-        return docType as DocumentType;
+        // Validate it's a known type
+        if (['810', '850', '856', '855', '997'].includes(docType)) {
+          return docType as DocumentType;
+        }
       }
     }
     
+    // Fallback: try to detect based on content keywords
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('invoice') && (lowerText.includes('810') || lowerText.includes('rejected'))) {
+      return '810';
+    } else if (lowerText.includes('purchase order') || lowerText.includes('po number')) {
+      return '850';
+    } else if (lowerText.includes('shipment') || lowerText.includes('asn') || lowerText.includes('tracking')) {
+      return '856';
+    } else if (lowerText.includes('acknowledgment') || lowerText.includes('997')) {
+      return '855';
+    }
+    
+    // Check for specific error patterns that indicate document type
+    if (/invoice.*reject|reject.*invoice|duplicate.*invoice/i.test(lowerText)) {
+      return '810';
+    }
+    if (/order.*reject|po.*reject|purchase.*order.*error/i.test(lowerText)) {
+      return '850';
+    }
+    if (/asn.*error|shipment.*reject|tracking.*invalid/i.test(lowerText)) {
+      return '856';
+    }
+    
+    // Default to 810 if invoice-related keywords are found
+    if (lowerText.includes('invoice') || lowerText.includes('payment') || lowerText.includes('billing')) {
+      return '810';
+    }
+    
     return null;
+  }
+
+  private static extractEDISpecificData(text: string): {
+    webediId?: string;
+    controlNumber?: string;
+    tradingPartner?: string;
+    integationType?: string;
+    errorCode?: string;
+    messageId?: string;
+  } {
+    const data: any = {};
+    
+    // Extract WebEDI ID (Company ID)
+    const webediIdPatterns = [
+      /company\s*id[:\s]*(\d+)/i,
+      /webedi\s*id[:\s]*(\d+)/i,
+      /customer\s*id[:\s]*(\d+)/i,
+      /account\s*#?[:\s]*(\d+)/i,
+      /\bid[:\s]*(\d{4,})/i // 4+ digit IDs
+    ];
+    
+    for (const pattern of webediIdPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        data.webediId = match[1];
+        break;
+      }
+    }
+    
+    // Extract control numbers
+    const controlPatterns = [
+      /control\s*number[:\s]*([A-Z0-9]+)/i,
+      /control\s*#[:\s]*([A-Z0-9]+)/i,
+      /message\s*control[:\s]*([A-Z0-9]+)/i,
+      /interchange\s*control[:\s]*(\d+)/i,
+      /ISA13[:\s]*(\d+)/i // ISA13 control number
+    ];
+    
+    for (const pattern of controlPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        data.controlNumber = match[1];
+        break;
+      }
+    }
+    
+    // Extract trading partner
+    const tradingPartnerPatterns = [
+      /trading\s*partner[:\s]+([^\n]+)/i,
+      /partner[:\s]+([^\n]+)/i,
+      /tp[:\s]+([^\n]+)/i
+    ];
+    
+    for (const pattern of tradingPartnerPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        data.tradingPartner = match[1].trim();
+        break;
+      }
+    }
+    
+    // Extract integration type
+    const integrationPatterns = [
+      /integration[:\s]+([^\n]+)/i,
+      /connection\s*type[:\s]+([^\n]+)/i,
+      /protocol[:\s]+(AS2|SFTP|FTP|HTTP|API)/i,
+      /(AS2|SFTP|FTP|HTTP|API)\s+connection/i
+    ];
+    
+    for (const pattern of integrationPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        data.integationType = match[1].trim();
+        break;
+      }
+    }
+    
+    return data;
   }
 
   private static extractCompanyNames(text: string): { supplier: string; buyer: string } {
@@ -130,6 +284,7 @@ export class TicketParser {
       /supplier[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /vendor[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /from[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
+      /sender[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /\b(\w+(?:\s+\w+)*)\s*-\s*(?:outbound|inbound)\s+\d+/i, // "Zero Egg Count - Outbound 810"
       /email\s+[\w\s]+\([\w.]+@([\w-]+)\.com\)/i, // Extract from email domain
       /[\w.]+@([\w-]+)\.com/i // General email pattern
@@ -139,6 +294,7 @@ export class TicketParser {
     const buyerPatterns = [
       /buyer[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /customer[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
+      /receiver[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /to[:\s]+([A-Za-z0-9\s&,.'()-]+?)(?:\s*[-–\n]|\s*$)/i,
       /rejected\s+by\s+([A-Za-z0-9\s&,.'()-]+?)(?:\s*\(|$)/i, // "rejected by Chewy.com"
       /invoices?\s+rejected\s+by\s+([A-Za-z0-9\s&,.'()-]+)/i,
@@ -215,6 +371,31 @@ export class TicketParser {
         break;
       }
     }
+    
+    // Additional patterns for company names in headers/footers
+    if (supplier === 'Unknown Supplier' || buyer === 'Unknown Buyer') {
+      // Look for company names in common formats
+      const companyPatterns = [
+        /^([A-Z][A-Za-z0-9\s&,.'()-]+?)[\s\n]/m, // Company name at start of line
+        /From:\s*([A-Za-z0-9\s&,.'()-]+?)[\s\n]/i,
+        /To:\s*([A-Za-z0-9\s&,.'()-]+?)[\s\n]/i,
+        /Company:\s*([A-Za-z0-9\s&,.'()-]+?)[\s\n]/i
+      ];
+      
+      for (const pattern of companyPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const company = match[1].trim();
+          if (company.length > 2 && company.length < 50) {
+            if (supplier === 'Unknown Supplier') {
+              supplier = company;
+            } else if (buyer === 'Unknown Buyer' && company !== supplier) {
+              buyer = company;
+            }
+          }
+        }
+      }
+    }
 
     // Extract from email addresses if still unknown
     if (supplier === 'Unknown Supplier') {
@@ -239,7 +420,12 @@ export class TicketParser {
       /PO\s*Numbers?[:\s]+([A-Z0-9,\s-]+)/gi, // "PO Numbers: RS41745897, RS41732724"
       /affected\s*PO\s*Numbers?[:\s]+([A-Z0-9,\s-]+)/gi,
       /\b(RS\d{8})\b/g, // Specific pattern for RS followed by 8 digits
-      /\b([A-Z]{2,3}\d{6,10})\b/g // General pattern for 2-3 letters + 6-10 digits
+      /\b([A-Z]{2,3}\d{6,10})\b/g, // General pattern for 2-3 letters + 6-10 digits
+      /Invoice\s*#?\s*([A-Z0-9-]+)/gi, // Invoice numbers
+      /Invoice\s*Number[:\s]+([A-Z0-9-]+)/gi,
+      /Order\s*#?\s*([A-Z0-9-]+)/gi, // Order numbers
+      /Reference[:\s]+([A-Z0-9-]+)/gi, // Reference numbers
+      /Document\s*#?\s*([A-Z0-9-]+)/gi // Document numbers
     ];
 
     const poNumbers: string[] = [];
@@ -252,14 +438,16 @@ export class TicketParser {
           const poList = match[1].split(/[,\s]+/).filter(po => po.length > 0);
           for (const po of poList) {
             const cleanPO = po.trim();
-            if (cleanPO.match(/^[A-Z0-9-]+$/) && cleanPO.length > 4 && !poNumbers.includes(cleanPO)) {
+            // More flexible validation - allow mixed alphanumeric
+            if (cleanPO.match(/^[A-Z0-9-]+$/i) && cleanPO.length > 3 && !poNumbers.includes(cleanPO)) {
               poNumbers.push(cleanPO);
             }
           }
         }
       }
     }
-
+    
+    console.log('Found PO/Invoice numbers:', poNumbers);
     return poNumbers;
   }
 
@@ -347,31 +535,119 @@ export class TicketParser {
 
   public static parse(rawText: string): ParsedTicket | null {
     try {
-      const documentType = this.extractDocumentType(rawText);
-      if (!documentType) {
-        throw new Error('Could not detect document type');
+      // Debug logging
+      console.log('=== TICKET PARSER DEBUG ===');
+      console.log('Text length:', rawText.length);
+      console.log('First 500 chars:', rawText.substring(0, 500));
+      
+      // Check if this is a Zendesk ticket
+      const isZendesk = this.isZendeskTicket(rawText);
+      console.log('Is Zendesk ticket:', isZendesk);
+      
+      if (isZendesk) {
+        const zendeskFields = this.extractZendeskFields(rawText);
+        console.log('Zendesk fields:', zendeskFields);
       }
-
+      
+      // Check if this is video analysis output
+      const isVideoAnalysis = rawText.includes('Video Analysis Results:');
+      console.log('Is video analysis:', isVideoAnalysis);
+      
+      if (isVideoAnalysis && rawText.includes('Manual Input Required')) {
+        console.log('Video requires manual input - showing template');
+        // Return a special result for video that needs manual input
+        return {
+          id: `video-${Date.now()}`,
+          documentType: '810', // Default for now
+          supplier: 'Video Analysis',
+          buyer: 'Manual Review Required',
+          errorType: 'VIDEO_ANALYSIS',
+          errorCode: 'MANUAL_INPUT_NEEDED',
+          affectedPOs: [],
+          action: 'modification' as ActionType,
+          timestamp: new Date(),
+          rawText,
+          webediId: undefined,
+          controlNumber: undefined,
+          tradingPartner: undefined,
+          integationType: 'Video'
+        };
+      }
+      
+      // Extract EDI-specific data
+      const ediData = this.extractEDISpecificData(rawText);
+      console.log('EDI specific data:', ediData);
+      
+      // Try to extract as much as possible
       const { supplier, buyer } = this.extractCompanyNames(rawText);
       const affectedPOs = this.extractPONumbers(rawText);
+      const ticketId = this.extractTicketId(rawText);
+      
+      console.log('Extracted so far:', { supplier, buyer, affectedPOs, ticketId });
+      
+      // Try to detect document type with fallback
+      let documentType = this.extractDocumentType(rawText);
+      
+      if (!documentType) {
+        console.log('No document type found, attempting fallback detection...');
+        
+        // Check for specific EDI error messages that indicate document type
+        if (/810|invoice/i.test(rawText)) {
+          documentType = '810';
+          console.log('Found 810/invoice reference');
+        } else if (/850|purchase\s*order|po\s/i.test(rawText)) {
+          documentType = '850';
+          console.log('Found 850/PO reference');
+        } else if (/856|asn|advance\s*ship/i.test(rawText)) {
+          documentType = '856';
+          console.log('Found 856/ASN reference');
+        } else if (/997|functional\s*ack/i.test(rawText)) {
+          documentType = '997';
+          console.log('Found 997 reference');
+        } else if (affectedPOs.length > 0) {
+          // If we have PO numbers but no clear type, default to 810
+          documentType = '810';
+          console.log('Have PO numbers, defaulting to 810');
+        } else {
+          // Absolute last resort - check for any business terms
+          if (/payment|billing|order|ship|deliver|invoice|purchase/i.test(rawText)) {
+            documentType = '810';
+            console.log('Found business terms, defaulting to 810');
+          } else {
+            console.log('No EDI indicators found in text');
+            throw new Error('Could not detect any EDI-related content');
+          }
+        }
+      }
+      
       const { errorType, errorCode } = this.detectErrorType(rawText, documentType);
       const action = this.detectAction(rawText);
-      const ticketId = this.extractTicketId(rawText);
 
-      return {
-        id: ticketId || `ticket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      const result = {
+        id: ticketId || ediData.webediId || `ticket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         documentType,
         supplier,
-        buyer,
+        buyer: buyer !== 'Unknown Buyer' ? buyer : (ediData.tradingPartner || buyer),
         errorType,
-        errorCode,
+        errorCode: errorCode || ediData.errorCode,
         affectedPOs,
         action,
         timestamp: new Date(),
-        rawText
+        rawText,
+        // Additional EDI fields
+        webediId: ediData.webediId,
+        controlNumber: ediData.controlNumber,
+        tradingPartner: ediData.tradingPartner,
+        integationType: ediData.integationType
       };
+      
+      console.log('Final parsed result:', result);
+      console.log('=== END PARSER DEBUG ===');
+      
+      return result;
     } catch (error) {
       console.error('Ticket parsing failed:', error);
+      console.log('Raw text that failed:', rawText.substring(0, 1000));
       return null;
     }
   }

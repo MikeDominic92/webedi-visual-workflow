@@ -15,6 +15,11 @@ export interface ParsedTicket {
   action: ActionType;
   timestamp: Date;
   rawText: string;
+  // Additional EDI fields
+  webediId?: string;
+  controlNumber?: string;
+  tradingPartner?: string;
+  integationType?: string;
 }
 
 export interface WorkflowNode {

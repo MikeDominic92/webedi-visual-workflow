@@ -11,12 +11,7 @@
   publish = "build"
   
   # Node version for builds
-  environment = { NODE_VERSION = "18" }
-
-[build.environment]
-  # Production optimizations
-  GENERATE_SOURCEMAP = "false"
-  CI = "false"
+  environment = { NODE_VERSION = "18", GENERATE_SOURCEMAP = "false", CI = "false" }
 
 # Headers for security and performance
 [[headers]]

@@ -36,7 +36,7 @@ const StationNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
     >
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         isConnectable={isConnectable}
         className="w-3 h-3 !bg-gray-700"
       />
@@ -67,7 +67,7 @@ const StationNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
       
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         isConnectable={isConnectable}
         className="w-3 h-3 !bg-gray-700"
       />

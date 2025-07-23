@@ -1,10 +1,12 @@
 // src/App.tsx
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import TicketInput from './components/TicketInput';
+import InputTabs from './components/InputTabs';
 import SubwayMapVisualizer from './components/SubwayMapVisualizer';
-import { useWorkflow, useParsedTicket } from './store/workflowStore';
+import ExportMenu from './components/ExportMenu';
+import ErrorPatternLibrary from './components/ErrorPatternLibrary';
+import { useWorkflow, useParsedTicket, useWorkflowError } from './store/workflowStore';
 
 const TicketDetails: React.FC = () => {
   const ticket = useParsedTicket();
@@ -69,6 +71,9 @@ const TicketDetails: React.FC = () => {
 function App() {
   const workflow = useWorkflow();
   const ticket = useParsedTicket();
+  const error = useWorkflowError();
+  const workflowRef = useRef<HTMLDivElement>(null);
+  const [showErrorLibrary, setShowErrorLibrary] = useState(false);
 
   useEffect(() => {
     if (workflow) {
@@ -94,9 +99,24 @@ function App() {
                 Transform EDI tickets into intuitive subway map visualizations
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">System Active</span>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowErrorLibrary(!showErrorLibrary)}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                  showErrorLibrary 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span className="text-sm font-medium">Error Library</span>
+              </button>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-gray-600">System Active</span>
+              </div>
             </div>
           </div>
         </div>
@@ -105,7 +125,28 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
-            <TicketInput />
+            <InputTabs />
+            
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start">
+                    <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">Error Processing File</h3>
+                      <p className="text-sm text-red-700 mt-1">{error}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             <AnimatePresence>
               {ticket && (
@@ -130,20 +171,23 @@ function App() {
                     <h2 className="text-xl font-semibold text-gray-800">
                       Workflow Visualization
                     </h2>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">
-                        Confidence: {Math.round(workflow.metadata.confidence * 100)}%
-                      </span>
-                      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-500 transition-all duration-500"
-                          style={{ width: `${workflow.metadata.confidence * 100}%` }}
-                        />
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          Confidence: {Math.round(workflow.metadata.confidence * 100)}%
+                        </span>
+                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-green-500 transition-all duration-500"
+                            style={{ width: `${workflow.metadata.confidence * 100}%` }}
+                          />
+                        </div>
                       </div>
+                      <ExportMenu targetRef={workflowRef} />
                     </div>
                   </div>
                   
-                  <div className="h-[calc(100%-3rem)]">
+                  <div ref={workflowRef} className="h-[calc(100%-3rem)]">
                     <SubwayMapVisualizer
                       nodes={workflow.nodes}
                       edges={workflow.edges}
@@ -188,6 +232,45 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* Error Pattern Library Modal */}
+      <AnimatePresence>
+        {showErrorLibrary && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowErrorLibrary(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-x-4 top-20 bottom-20 max-w-4xl mx-auto z-50"
+            >
+              <div className="relative h-full">
+                <button
+                  onClick={() => setShowErrorLibrary(false)}
+                  className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <ErrorPatternLibrary 
+                  currentErrorType={ticket?.errorType}
+                  onSelectError={(pattern) => {
+                    console.log('Selected pattern:', pattern);
+                    setShowErrorLibrary(false);
+                  }}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <footer className="mt-12 pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

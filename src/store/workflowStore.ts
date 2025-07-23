@@ -8,6 +8,53 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
   const nodes: WorkflowNode[] = [];
   const edges: WorkflowEdge[] = [];
   
+  // Special handling for video analysis
+  if (ticket.errorType === 'VIDEO_ANALYSIS') {
+    const videoFlow = [
+      { id: 'start', label: 'Video Uploaded', status: 'complete' as const },
+      { id: 'process', label: 'Frame Extraction', status: 'complete' as const },
+      { id: 'ocr', label: 'OCR Analysis', status: 'complete' as const },
+      { id: 'manual', label: 'Manual Review Required', status: 'processing' as const },
+      { id: 'complete', label: 'Ready for Input', status: 'start' as const }
+    ];
+    
+    videoFlow.forEach((step, index) => {
+      const x = 400; // Center horizontally
+      const y = 100 + (index * 150); // Space vertically
+      
+      nodes.push({
+        id: step.id,
+        type: 'station',
+        position: { x, y },
+        data: {
+          label: step.label,
+          status: step.status,
+          description: step.id === 'manual' ? 'Please fill in the EDI details from the video' : undefined
+        }
+      });
+    });
+    
+    for (let i = 0; i < nodes.length - 1; i++) {
+      edges.push({
+        id: `edge-${i}`,
+        source: nodes[i].id,
+        target: nodes[i + 1].id,
+        type: 'main',
+        animated: nodes[i].data.status === 'processing'
+      });
+    }
+    
+    return {
+      nodes,
+      edges,
+      metadata: {
+        documentType: ticket.documentType,
+        generatedAt: new Date(),
+        confidence: 0.5 // Lower confidence for video analysis
+      }
+    };
+  }
+  
   const baseFlows = {
     '810': [
       { id: 'start', label: 'Invoice Received', status: 'complete' as const },
@@ -43,8 +90,8 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
   const flow = baseFlows[ticket.documentType] || baseFlows['810'];
   
   flow.forEach((step, index) => {
-    const x = 200 + (index * 250);
-    const y = 200 + (index % 2 === 0 ? 0 : 50);
+    const x = 400; // Center horizontally
+    const y = 100 + (index * 150); // Space vertically
     
     nodes.push({
       id: step.id,
@@ -89,21 +136,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   error: null,
 
   parseTicket: async (rawText: string) => {
+    console.log('parseTicket called with text length:', rawText.length);
     set({ isProcessing: true, error: null });
     
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      console.log('Attempting to parse ticket...');
       const parsedTicket = TicketParser.parse(rawText);
       
       if (!parsedTicket) {
-        throw new Error('Failed to parse ticket. Please check the format.');
+        console.error('Ticket parsing returned null');
+        throw new Error('Could not extract EDI information from the text. The parser is looking for: invoice numbers, PO numbers, company names, or EDI document types (810, 850, 856). Please check the console for debug information.');
       }
 
+      console.log('Ticket parsed successfully:', parsedTicket);
       set({ currentTicket: parsedTicket });
       get().generateWorkflow(parsedTicket);
       
     } catch (error) {
+      console.error('Parse ticket error:', error);
       set({ 
         error: error instanceof Error ? error.message : 'An error occurred',
         isProcessing: false 
@@ -143,4 +195,8 @@ export const useParsedTicket = () => {
 
 export const useWorkflow = () => {
   return useWorkflowStore(state => state.workflow);
+};
+
+export const useWorkflowError = () => {
+  return useWorkflowStore(state => state.error);
 };
