@@ -6,7 +6,13 @@ import InputTabs from './components/InputTabs';
 import SubwayMapVisualizer from './components/SubwayMapVisualizer';
 import ExportMenu from './components/ExportMenu';
 import ErrorPatternLibrary from './components/ErrorPatternLibrary';
-import { useWorkflow, useParsedTicket, useWorkflowError } from './store/workflowStore';
+import TicketInfoHeader from './components/TicketInfoHeader';
+import CustomerSearch from './components/CustomerSearch';
+import CustomerProfile from './components/CustomerProfile';
+import RecentTickets from './components/RecentTickets';
+import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore } from './store/workflowStore';
+import { Company, Ticket } from './lib/supabase';
+import { isSupabaseConfigured } from './lib/supabase';
 
 const TicketDetails: React.FC = () => {
   const ticket = useParsedTicket();
@@ -74,6 +80,9 @@ function App() {
   const error = useWorkflowError();
   const workflowRef = useRef<HTMLDivElement>(null);
   const [showErrorLibrary, setShowErrorLibrary] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [showCustomerProfile, setShowCustomerProfile] = useState(false);
+  const { parseTicket } = useWorkflowStore();
 
   useEffect(() => {
     if (workflow) {
@@ -87,25 +96,33 @@ function App() {
   }, [workflow]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-black">
+      <header className="bg-zinc-900 border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-white">
                 WebEDI Visual Workflow
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-zinc-400 mt-1">
                 Transform EDI tickets into intuitive subway map visualizations
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              {isSupabaseConfigured() && (
+                <div className="w-64">
+                  <CustomerSearch onSelectCompany={(company) => {
+                    setSelectedCompany(company);
+                    setShowCustomerProfile(true);
+                  }} />
+                </div>
+              )}
               <button
                 onClick={() => setShowErrorLibrary(!showErrorLibrary)}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
                   showErrorLibrary 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-white text-black' 
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,8 +131,8 @@ function App() {
                 <span className="text-sm font-medium">Error Library</span>
               </button>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">System Active</span>
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-zinc-400">System Active</span>
               </div>
             </div>
           </div>
@@ -123,7 +140,21 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ticket Info Header - Always visible when ticket exists */}
+        <AnimatePresence>
+          {ticket && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <TicketInfoHeader ticket={ticket} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           <div className="lg:col-span-1">
             <InputTabs />
             
@@ -133,28 +164,24 @@ function App() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4"
+                  className="mt-4 bg-red-900/20 border border-red-900/50 rounded-lg p-4"
                 >
                   <div className="flex items-start">
-                    <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">Error Processing File</h3>
-                      <p className="text-sm text-red-700 mt-1">{error}</p>
+                      <h3 className="text-sm font-medium text-red-400">Error Processing File</h3>
+                      <p className="text-sm text-red-300 mt-1">{error}</p>
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
             
-            <AnimatePresence>
-              {ticket && (
-                <div className="mt-6">
-                  <TicketDetails />
-                </div>
-              )}
-            </AnimatePresence>
+            {isSupabaseConfigured() && (
+              <RecentTickets onLoadTicket={(ticketText) => parseTicket(ticketText)} />
+            )}
           </div>
 
           <div className="lg:col-span-2">
@@ -165,20 +192,20 @@ function App() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-lg shadow-lg p-6 h-[600px]"
+                  className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 h-[700px]"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800">
-                      Workflow Visualization
+                    <h2 className="text-xl font-semibold text-white">
+                      Workflow Process Flow
                     </h2>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-zinc-400">
                           Confidence: {Math.round(workflow.metadata.confidence * 100)}%
                         </span>
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-green-500 transition-all duration-500"
+                            className="h-full bg-emerald-500 transition-all duration-500"
                             style={{ width: `${workflow.metadata.confidence * 100}%` }}
                           />
                         </div>
@@ -203,11 +230,11 @@ function App() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="bg-white rounded-lg shadow-lg p-6 h-[600px] flex items-center justify-center"
+                  className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 h-[700px] flex items-center justify-center"
                 >
                   <div className="text-center">
                     <svg
-                      className="mx-auto h-24 w-24 text-gray-300"
+                      className="mx-auto h-24 w-24 text-zinc-600"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -219,11 +246,11 @@ function App() {
                         d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 01.553-.894L9 2m0 18l6-3m-6 3V2m6 18l5.447-2.724A1 1 0 0021 16.382V5.618a1 1 0 00-.553-.894L15 2m0 18V2"
                       />
                     </svg>
-                    <h3 className="mt-4 text-lg font-medium text-gray-900">
+                    <h3 className="mt-4 text-lg font-medium text-white">
                       No Workflow Generated
                     </h3>
-                    <p className="mt-2 text-sm text-gray-600">
-                      Paste an EDI ticket to visualize its workflow
+                    <p className="mt-2 text-sm text-zinc-400">
+                      Paste an EDI ticket or upload a file to visualize its workflow
                     </p>
                   </div>
                 </motion.div>
@@ -272,9 +299,28 @@ function App() {
         )}
       </AnimatePresence>
 
+      {/* Customer Profile Modal */}
+      <AnimatePresence>
+        {showCustomerProfile && selectedCompany && (
+          <CustomerProfile
+            company={selectedCompany}
+            onClose={() => {
+              setShowCustomerProfile(false);
+              setSelectedCompany(null);
+            }}
+            onLoadTicket={(ticket) => {
+              if (ticket.raw_text) {
+                parseTicket(ticket.raw_text);
+                setShowCustomerProfile(false);
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <footer className="mt-12 pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-zinc-600">
             Phase 1 MVP • React Flow + TypeScript • Subway Map Visualization
           </p>
         </div>

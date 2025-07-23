@@ -57,22 +57,22 @@ const TicketInput: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-lg p-6"
+      className="bg-zinc-900 rounded-lg border border-zinc-800 p-6"
     >
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-2xl font-bold text-white mb-4">
         EDI Ticket Analyzer
       </h2>
       
       <div className="space-y-4">
         <div>
-          <label htmlFor="ticket" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="ticket" className="block text-sm font-medium text-zinc-300 mb-2">
             Paste your EDI ticket below:
           </label>
           <textarea
             id="ticket"
             value={ticketText}
             onChange={(e) => setTicketText(e.target.value)}
-            className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full h-40 px-3 py-2 bg-black border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent resize-none text-white placeholder-zinc-500"
             placeholder="Example: 810 Invoice rejected by Walmart - duplicate invoice number..."
             disabled={isProcessing}
           />
@@ -82,7 +82,7 @@ const TicketInput: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md"
+            className="bg-red-900/20 border border-red-900/50 text-red-400 px-4 py-3 rounded-md"
           >
             <p className="text-sm">{error}</p>
           </motion.div>
@@ -95,8 +95,8 @@ const TicketInput: React.FC = () => {
             className={`
               flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200
               ${ticketText.trim() && !isProcessing
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-white hover:bg-zinc-200 text-black'
+                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
               }
             `}
           >
@@ -115,42 +115,42 @@ const TicketInput: React.FC = () => {
           
           <button
             onClick={clearWorkflow}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+            className="px-4 py-2 border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 transition-colors duration-200"
           >
             Clear
           </button>
         </div>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <p className="text-sm text-gray-600 mb-3">Try a sample ticket:</p>
+      <div className="mt-6 pt-6 border-t border-zinc-800">
+        <p className="text-sm text-zinc-400 mb-3">Try a sample ticket:</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => loadSampleTicket('invoice')}
-            className="px-3 py-1 text-sm bg-edi-error text-white rounded-full hover:opacity-90 transition-opacity"
+            className="px-3 py-1 text-sm bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
           >
             810 Invoice Error
           </button>
           <button
             onClick={() => loadSampleTicket('purchase')}
-            className="px-3 py-1 text-sm bg-edi-processing text-white rounded-full hover:opacity-90 transition-opacity"
+            className="px-3 py-1 text-sm bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-colors"
           >
             850 PO Error
           </button>
           <button
             onClick={() => loadSampleTicket('shipment')}
-            className="px-3 py-1 text-sm bg-edi-complete text-white rounded-full hover:opacity-90 transition-opacity"
+            className="px-3 py-1 text-sm bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors"
           >
             856 ASN Error
           </button>
         </div>
       </div>
 
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">
+      <div className="mt-4 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+        <h3 className="text-sm font-semibold text-zinc-300 mb-2">
           Supported Document Types:
         </h3>
-        <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
+        <div className="grid grid-cols-3 gap-2 text-xs text-zinc-400">
           <div>• 810 - Invoice</div>
           <div>• 850 - Purchase Order</div>
           <div>• 856 - Ship Notice/ASN</div>

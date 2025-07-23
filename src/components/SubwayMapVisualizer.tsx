@@ -18,10 +18,10 @@ import 'reactflow/dist/style.css';
 
 const StationNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
   const statusColors = {
-    start: 'bg-green-500 border-green-600',
-    processing: 'bg-yellow-500 border-yellow-600',
-    error: 'bg-red-500 border-red-600',
-    complete: 'bg-blue-500 border-blue-600',
+    start: 'bg-emerald-500 border-emerald-400',
+    processing: 'bg-amber-500 border-amber-400',
+    error: 'bg-red-500 border-red-400',
+    complete: 'bg-zinc-500 border-zinc-400',
   };
 
   const pulseAnimation = data.status === 'processing' ? {
@@ -38,28 +38,35 @@ const StationNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
         type="target"
         position={Position.Top}
         isConnectable={isConnectable}
-        className="w-3 h-3 !bg-gray-700"
+        className="w-3 h-3 !bg-zinc-400"
       />
       
       <div className={`
         w-16 h-16 rounded-full flex items-center justify-center
         ${statusColors[data.status as keyof typeof statusColors]}
-        border-4 shadow-lg cursor-pointer
+        border-4 shadow-2xl cursor-pointer
         transition-all duration-300 hover:scale-110
       `}>
-        <div className="text-white font-bold text-xs text-center">
+        <div className="text-black font-bold text-xs text-center">
           {data.status === 'error' ? '!' : '✓'}
         </div>
       </div>
       
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center">
-        <div className="bg-white px-3 py-1 rounded-lg shadow-md border border-gray-200">
-          <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center w-48">
+        <div className="bg-zinc-900 px-4 py-2 rounded-lg shadow-xl border border-zinc-700">
+          <p className="text-sm font-semibold text-white">
             {data.label}
           </p>
+          {data.description && (
+            <p className="text-xs text-zinc-400 mt-1">
+              {data.description}
+            </p>
+          )}
           {data.errorDetails && (
-            <p className="text-xs text-red-600 mt-1 max-w-xs">
-              {data.errorDetails}
+            <p className="text-xs text-red-400 mt-2 break-words">
+              {data.errorDetails.length > 50 
+                ? data.errorDetails.substring(0, 50) + '...' 
+                : data.errorDetails}
             </p>
           )}
         </div>
@@ -69,7 +76,7 @@ const StationNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="w-3 h-3 !bg-gray-700"
+        className="w-3 h-3 !bg-zinc-400"
       />
     </motion.div>
   );
@@ -95,7 +102,7 @@ const SubwayEdge: React.FC<EdgeProps> = ({
     targetY,
   });
 
-  const edgeColor = data?.type === 'error' ? '#ef4444' : '#1f2937';
+  const edgeColor = data?.type === 'error' ? '#ef4444' : '#71717a';
 
   return (
     <>
@@ -155,7 +162,7 @@ const SubwayMapVisualizer: React.FC<SubwayMapVisualizerProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-gray-50 rounded-lg shadow-inner">
+    <div className="w-full h-full bg-black rounded-lg">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -168,13 +175,13 @@ const SubwayMapVisualizer: React.FC<SubwayMapVisualizerProps> = ({
         attributionPosition="bottom-right"
       >
         <Background 
-          color="#e5e7eb" 
+          color="#27272a" 
           gap={20} 
           size={1}
-          style={{ backgroundColor: '#f9fafb' }}
+          style={{ backgroundColor: '#000000' }}
         />
         <Controls 
-          className="bg-white rounded-lg shadow-md"
+          className="bg-zinc-900 rounded-lg border border-zinc-700"
           showZoom={true}
           showFitView={true}
           showInteractive={false}
@@ -185,33 +192,33 @@ const SubwayMapVisualizer: React.FC<SubwayMapVisualizerProps> = ({
               start: '#10b981',
               processing: '#f59e0b',
               error: '#ef4444',
-              complete: '#3b82f6',
+              complete: '#71717a',
             };
-            return colors[node.data?.status as keyof typeof colors] || '#6b7280';
+            return colors[node.data?.status as keyof typeof colors] || '#71717a';
           }}
-          className="bg-white rounded-lg shadow-md"
-          maskColor="rgb(50, 50, 50, 0.1)"
+          className="bg-zinc-900 rounded-lg border border-zinc-700"
+          maskColor="rgb(0, 0, 0, 0.8)"
         />
       </ReactFlow>
       
-      <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Status Legend</h3>
-        <div className="space-y-2">
+      <div className="absolute top-4 right-4 bg-zinc-900/95 backdrop-blur p-3 rounded-lg border border-zinc-700">
+        <h3 className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Legend</h3>
+        <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-gray-600">Start/Success</span>
+            <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+            <span className="text-xs text-zinc-300">Start/Success</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-            <span className="text-xs text-gray-600">Processing</span>
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span className="text-xs text-zinc-300">Processing</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-            <span className="text-xs text-gray-600">Error</span>
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-xs text-zinc-300">Error</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-            <span className="text-xs text-gray-600">Complete</span>
+            <div className="w-3 h-3 bg-zinc-500 rounded-full"></div>
+            <span className="text-xs text-zinc-300">Complete</span>
           </div>
         </div>
       </div>

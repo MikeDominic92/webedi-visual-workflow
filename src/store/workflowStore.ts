@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import { WorkflowState, ParsedTicket, VisualWorkflow, WorkflowNode, WorkflowEdge } from '../types';
 import { TicketParser } from '../utils/ticketParser';
+import { TicketService } from '../services/ticketService';
+import { Ticket } from '../lib/supabase';
 
 const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
   const nodes: WorkflowNode[] = [];
@@ -20,7 +22,7 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
     
     videoFlow.forEach((step, index) => {
       const x = 400; // Center horizontally
-      const y = 100 + (index * 150); // Space vertically
+      const y = 100 + (index * 200); // Increased vertical spacing
       
       nodes.push({
         id: step.id,
@@ -91,7 +93,7 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
   
   flow.forEach((step, index) => {
     const x = 400; // Center horizontally
-    const y = 100 + (index * 150); // Space vertically
+    const y = 100 + (index * 200); // Increased vertical spacing
     
     nodes.push({
       id: step.id,
@@ -129,11 +131,19 @@ const generateWorkflowFromTicket = (ticket: ParsedTicket): VisualWorkflow => {
   };
 };
 
-export const useWorkflowStore = create<WorkflowState>((set, get) => ({
+interface ExtendedWorkflowState extends WorkflowState {
+  savedTicket: Ticket | null;
+  recentTickets: Ticket[];
+  loadRecentTickets: () => Promise<void>;
+}
+
+export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
   currentTicket: null,
   workflow: null,
   isProcessing: false,
   error: null,
+  savedTicket: null,
+  recentTickets: [],
 
   parseTicket: async (rawText: string) => {
     console.log('parseTicket called with text length:', rawText.length);
@@ -163,7 +173,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     }
   },
 
-  generateWorkflow: (ticket: ParsedTicket) => {
+  generateWorkflow: async (ticket: ParsedTicket) => {
     try {
       const workflow = generateWorkflowFromTicket(ticket);
       set({ 
@@ -171,6 +181,16 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         isProcessing: false,
         error: null 
       });
+      
+      // Save ticket to database
+      const savedTicket = await TicketService.saveTicket(ticket, workflow);
+      if (savedTicket) {
+        set({ savedTicket });
+        console.log('Ticket saved to database:', savedTicket.id);
+        
+        // Reload recent tickets
+        get().loadRecentTickets();
+      }
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to generate workflow',
@@ -184,8 +204,18 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       currentTicket: null,
       workflow: null,
       isProcessing: false,
-      error: null
+      error: null,
+      savedTicket: null
     });
+  },
+  
+  loadRecentTickets: async () => {
+    try {
+      const tickets = await TicketService.getRecentTickets(5);
+      set({ recentTickets: tickets });
+    } catch (error) {
+      console.error('Error loading recent tickets:', error);
+    }
   }
 }));
 
@@ -199,4 +229,12 @@ export const useWorkflow = () => {
 
 export const useWorkflowError = () => {
   return useWorkflowStore(state => state.error);
+};
+
+export const useRecentTickets = () => {
+  return useWorkflowStore(state => state.recentTickets);
+};
+
+export const useSavedTicket = () => {
+  return useWorkflowStore(state => state.savedTicket);
 };

@@ -139,9 +139,9 @@ const FileUploadInput: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-lg p-6"
+      className="bg-zinc-900 rounded-lg border border-zinc-800 p-6"
     >
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-2xl font-bold text-white mb-4">
         Upload EDI Files
       </h2>
 
@@ -150,8 +150,8 @@ const FileUploadInput: React.FC = () => {
         className={`
           border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
           ${isDragActive 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+            ? 'border-zinc-500 bg-zinc-800/50' 
+            : 'border-zinc-700 hover:border-zinc-600 bg-black'
           }
           ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
         `}
@@ -161,7 +161,7 @@ const FileUploadInput: React.FC = () => {
         <div className="space-y-4">
           <div className="flex justify-center">
             <svg
-              className={`w-12 h-12 ${isDragActive ? 'text-blue-500' : 'text-gray-400'}`}
+              className={`w-12 h-12 ${isDragActive ? 'text-zinc-300' : 'text-zinc-600'}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -176,16 +176,16 @@ const FileUploadInput: React.FC = () => {
           </div>
           
           <div>
-            <p className="text-gray-700 font-medium">
+            <p className="text-zinc-300 font-medium">
               {isDragActive
                 ? 'Drop files here...'
                 : 'Drag & drop files here, or click to select'
               }
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-zinc-400 mt-2">
               Supports: PDF, Images (PNG, JPG), Text files, CSV, XML, Videos (MP4)
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-zinc-500 mt-1">
               Maximum file size: 50MB
             </p>
           </div>
@@ -201,7 +201,7 @@ const FileUploadInput: React.FC = () => {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 space-y-3"
           >
-            <h3 className="text-sm font-semibold text-gray-700">Uploaded Files</h3>
+            <h3 className="text-sm font-semibold text-zinc-300">Uploaded Files</h3>
             
             {uploadedFiles.map(uploadedFile => (
               <motion.div
@@ -209,38 +209,38 @@ const FileUploadInput: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                className="bg-zinc-800 rounded-lg p-4 border border-zinc-700"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3 flex-1">
                     <span className="text-2xl">{getFileIcon(uploadedFile.file)}</span>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-800 text-sm">
+                      <p className="font-medium text-white text-sm">
                         {uploadedFile.file.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-zinc-400">
                         {formatFileSize(uploadedFile.file.size)}
                       </p>
                       
                       {/* Progress Bar */}
                       {uploadedFile.status === 'processing' && (
                         <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-zinc-700 rounded-full h-2">
                             <motion.div
-                              className="bg-blue-500 h-2 rounded-full"
+                              className="bg-white h-2 rounded-full"
                               initial={{ width: 0 }}
                               animate={{ width: `${uploadedFile.progress}%` }}
                               transition={{ duration: 0.3 }}
                             />
                           </div>
-                          <p className="text-xs text-gray-600 mt-1">Processing...</p>
+                          <p className="text-xs text-zinc-400 mt-1">Processing...</p>
                         </div>
                       )}
                       
                       {/* Success Message */}
                       {uploadedFile.status === 'success' && uploadedFile.extractedText && (
                         <div className="mt-2">
-                          <p className="text-xs text-green-600 flex items-center">
+                          <p className="text-xs text-emerald-400 flex items-center">
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
@@ -258,8 +258,8 @@ const FileUploadInput: React.FC = () => {
                             disabled={isProcessing}
                             className={`mt-2 text-xs px-3 py-1 rounded transition-colors ${
                               isProcessing 
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed' 
+                                : 'bg-white text-black hover:bg-zinc-200'
                             }`}
                           >
                             {isProcessing ? 'Processing...' : 'Use This Text'}
@@ -269,7 +269,7 @@ const FileUploadInput: React.FC = () => {
                       
                       {/* Error Message */}
                       {uploadedFile.status === 'error' && uploadedFile.error && (
-                        <p className="text-xs text-red-600 mt-2">
+                        <p className="text-xs text-red-400 mt-2">
                           Error: {uploadedFile.error}
                         </p>
                       )}
@@ -278,7 +278,7 @@ const FileUploadInput: React.FC = () => {
                   
                   <button
                     onClick={() => removeFile(uploadedFile.id)}
-                    className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="ml-4 text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -292,11 +292,11 @@ const FileUploadInput: React.FC = () => {
       </AnimatePresence>
 
       {/* Supported Formats Info */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">
+      <div className="mt-6 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+        <h3 className="text-sm font-semibold text-zinc-300 mb-2">
           Supported File Formats:
         </h3>
-        <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+        <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
           <div>• PDF Documents</div>
           <div>• Images (PNG, JPG, etc.)</div>
           <div>• Text Files (.txt, .edi)</div>

@@ -16,7 +16,7 @@ const InputTabs: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg shadow-sm p-1 flex space-x-1">
+      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-1 flex space-x-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -25,8 +25,8 @@ const InputTabs: React.FC = () => {
               flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md
               font-medium transition-all duration-200 relative
               ${activeTab === tab.id
-                ? 'text-blue-600'
-                : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white'
+                : 'text-zinc-400 hover:text-zinc-200'
               }
             `}
           >
@@ -36,7 +36,7 @@ const InputTabs: React.FC = () => {
             {activeTab === tab.id && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute inset-0 bg-blue-50 rounded-md -z-10"
+                className="absolute inset-0 bg-zinc-800 rounded-md -z-10"
                 initial={false}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               />
@@ -71,8 +71,8 @@ const InputTabs: React.FC = () => {
       </AnimatePresence>
 
       {/* Help Text */}
-      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
-        <p className="font-medium mb-1">💡 Pro Tip:</p>
+      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 text-sm text-zinc-400">
+        <p className="font-medium mb-1 text-zinc-300">💡 Pro Tip:</p>
         <p>
           {activeTab === 'text' 
             ? 'Paste EDI ticket text directly or use sample tickets to see how the workflow visualization works.'
