@@ -12,6 +12,7 @@ import CustomerSearch from './components/CustomerSearch';
 import CustomerProfile from './components/CustomerProfile';
 import RecentTickets from './components/RecentTickets';
 import CustomerInfoBadge from './components/CustomerInfoBadge';
+import { TwoStageAIPanel } from './components/TwoStageAIPanel';
 import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore, useEditMode } from './store/workflowStore';
 import { Company, Ticket } from './lib/supabase';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -199,10 +200,10 @@ function App() {
         </AnimatePresence>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
           <div className="lg:col-span-1">
             <InputTabs />
-            
+
             <AnimatePresence>
               {error && (
                 <motion.div
@@ -223,7 +224,7 @@ function App() {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             {isSupabaseConfigured() && (
               <RecentTickets onLoadTicket={(ticketText) => parseTicket(ticketText)} />
             )}
@@ -301,6 +302,11 @@ function App() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* 2-Stage AI Panel */}
+          <div className="lg:col-span-1">
+            <TwoStageAIPanel />
           </div>
         </div>
       </main>

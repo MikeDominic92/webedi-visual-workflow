@@ -10,9 +10,13 @@ export const config = {
   // Feature Flags
   ENABLE_AI_INTEGRATION: process.env.REACT_APP_ENABLE_AI_INTEGRATION === 'true',
   ENABLE_ANALYTICS: process.env.REACT_APP_ENABLE_ANALYTICS === 'true',
-  
-  // Gemini AI Configuration
+
+  // AI Configuration - Unified OpenRouter API
+  OPENROUTER_API_KEY: process.env.REACT_APP_OPENROUTER_API_KEY || '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',
+
+  // Legacy API keys (deprecated - now using OpenRouter)
   GEMINI_API_KEY: process.env.REACT_APP_GEMINI_API_KEY || '',
+  GROQ_API_KEY: process.env.REACT_APP_GROQ_API_KEY || '',
   
   // App Configuration
   APP_NAME: process.env.REACT_APP_NAME || 'WebEDI Visual Workflow',

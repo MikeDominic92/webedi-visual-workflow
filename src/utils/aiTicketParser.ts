@@ -1,127 +1,191 @@
-import { ParsedTicket } from '../types';
+import { ParsedTicket, TwoStageAIResponse } from '../types';
+import { OpenRouterAIParser } from './openRouterAIParser';
+import { OpenRouterService, OpenRouterResponse } from '../services/openRouterService';
 import { GeminiService } from '../services/geminiService';
+import { KimiGroqService } from '../services/kimiGroqService';
+import { TwoStageAIParser } from './twoStageAIParser';
 import { TicketParser } from './ticketParser';
 import { config } from '../config/environment';
 import { LocalCustomerService } from '../services/localCustomerService';
 
 export class AITicketParser {
+  // Store the last OpenRouter response for access by other components
+  private static lastOpenRouterResponse: OpenRouterResponse | null = null;
+  // Keep legacy 2-stage response for backward compatibility
+  private static lastTwoStageResponse: TwoStageAIResponse | null = null;
+
   /**
-   * Parse ticket using AI if available, fallback to regex parser
+   * Parse ticket using OpenRouter unified AI workflow
    */
   static async parse(rawText: string): Promise<ParsedTicket | null> {
-    let parsedTicket: ParsedTicket | null = null;
-    
-    // Check if AI is enabled and available
-    if (config.ENABLE_AI_INTEGRATION && await GeminiService.isAvailable()) {
-      console.log('Using Gemini 2.5 Pro for ticket analysis...');
-      
-      try {
-        const aiResult = await GeminiService.analyzeTicket(rawText);
-        
-        if (aiResult.success && aiResult.data) {
-          console.log('AI analysis successful:', {
-            confidence: aiResult.confidence,
-            reasoning: aiResult.reasoning
-          });
-          parsedTicket = aiResult.data;
-        } else {
-          console.warn('AI analysis failed:', aiResult.error);
-          console.log('Falling back to regex parser...');
+    try {
+      console.log('🚀 Starting OpenRouter AI ticket parsing');
+
+      // Use OpenRouter for unified AI processing
+      const openRouterResult = await OpenRouterAIParser.parseWithDetails(rawText);
+
+      // Store the OpenRouter response for backward compatibility
+      if (openRouterResult.openRouterResponse) {
+        this.lastTwoStageResponse = this.convertToLegacyFormat(openRouterResult.openRouterResponse);
+      }
+
+      if (openRouterResult.success && openRouterResult.parsedTicket) {
+        console.log('✅ OpenRouter parsing successful');
+        return await LocalCustomerService.enhanceTicketWithCustomerData(openRouterResult.parsedTicket);
+      } else {
+        console.warn('⚠️ OpenRouter parsing failed, using fallback');
+        const fallbackTicket = TicketParser.parse(rawText);
+        if (fallbackTicket) {
+          return await LocalCustomerService.enhanceTicketWithCustomerData(fallbackTicket);
         }
-      } catch (error) {
-        console.error('AI parsing error:', error);
-        console.log('Falling back to regex parser...');
+      }
+    } catch (error) {
+      console.error('❌ OpenRouter AI parsing failed:', error);
+
+      // Fallback to regex parser
+      const fallbackTicket = TicketParser.parse(rawText);
+      if (fallbackTicket) {
+        return await LocalCustomerService.enhanceTicketWithCustomerData(fallbackTicket);
       }
     }
-    
-    // Fallback to traditional regex parser if AI didn't work
-    if (!parsedTicket) {
-      parsedTicket = TicketParser.parse(rawText);
-    }
-    
-    // Enhance with customer data
-    if (parsedTicket) {
-      parsedTicket = await LocalCustomerService.enhanceTicketWithCustomerData(parsedTicket);
-      
-      // Generate standardized ticket title if we have company info
-      if (parsedTicket.companyId && parsedTicket.companyName && parsedTicket.errorType) {
-        // Create a more descriptive error message for the title
-        let errorDescription = parsedTicket.errorType;
-        if (parsedTicket.issueDescription) {
-          // Extract key issue from description
-          const issueMatch = parsedTicket.issueDescription.match(/rejected.*?(?:\.|$)|error.*?(?:\.|$)|failed.*?(?:\.|$)/i);
-          if (issueMatch) {
-            errorDescription = issueMatch[0].replace(/\.$/, '');
-          }
-        } else {
-          // Make error type more readable
-          errorDescription = parsedTicket.errorType.replace(/_/g, ' ').toLowerCase()
-            .replace(/\b\w/g, l => l.toUpperCase());
-        }
-        
-        parsedTicket.ticketTitle = TicketParser.generateTicketTitle(
-          parsedTicket.companyId,
-          parsedTicket.companyName,
-          errorDescription,
-          parsedTicket.documentType
-        );
-      }
-    }
-    
-    return parsedTicket;
+
+    return null;
   }
 
   /**
-   * Parse image-based ticket using AI vision capabilities
+   * Parse image-based ticket using enhanced 2-stage AI workflow
    */
   static async parseImage(imageData: string): Promise<ParsedTicket | null> {
-    let parsedTicket: ParsedTicket | null = null;
-    
-    if (config.ENABLE_AI_INTEGRATION && await GeminiService.isAvailable()) {
-      console.log('Using Gemini 2.5 Pro vision for image analysis...');
-      
-      try {
-        const aiResult = await GeminiService.analyzeImage(imageData);
-        
-        if (aiResult.success && aiResult.data) {
-          console.log('AI image analysis successful:', {
-            confidence: aiResult.confidence,
-            reasoning: aiResult.reasoning
-          });
-          parsedTicket = aiResult.data;
-        } else {
-          console.warn('AI image analysis failed:', aiResult.error);
-        }
-      } catch (error) {
-        console.error('AI image parsing error:', error);
+    try {
+      // Use the new 2-stage AI workflow for images
+      const twoStageResult = await TwoStageAIParser.parseImage(imageData);
+
+      // Store the result for access by other components
+      this.lastTwoStageResponse = twoStageResult;
+
+      if (twoStageResult.overallSuccess && twoStageResult.parsedTicket) {
+        return twoStageResult.parsedTicket;
+      } else {
+        console.warn('2-stage AI image workflow failed');
       }
+    } catch (error) {
+      console.error('2-stage AI image parsing error:', error);
     }
-    
-    // Enhance with customer data if we got a result
-    if (parsedTicket) {
-      parsedTicket = await LocalCustomerService.enhanceTicketWithCustomerData(parsedTicket);
-    }
-    
-    return parsedTicket;
+
+    return null;
   }
 
   /**
-   * Get parsing confidence score
+   * Convert OpenRouter response to legacy 2-stage format for backward compatibility
+   */
+  private static convertToLegacyFormat(openRouterResponse: OpenRouterResponse): TwoStageAIResponse {
+    return {
+      stage1: {
+        success: openRouterResponse.stage1.success,
+        data: openRouterResponse.parsedTicket,
+        error: openRouterResponse.stage1.error,
+        processingTime: openRouterResponse.stage1.processingTime,
+        model: openRouterResponse.stage1.model
+      },
+      stage2: openRouterResponse.stage2 ? {
+        success: openRouterResponse.stage2.success,
+        data: openRouterResponse.responseGeneration,
+        error: openRouterResponse.stage2.error,
+        processingTime: openRouterResponse.stage2.processingTime,
+        tokensPerSecond: openRouterResponse.stage2.tokensPerSecond,
+        model: openRouterResponse.stage2.model
+      } : undefined,
+      parsedTicket: openRouterResponse.parsedTicket,
+      responseGeneration: openRouterResponse.responseGeneration,
+      totalProcessingTime: openRouterResponse.totalProcessingTime,
+      overallSuccess: openRouterResponse.overallSuccess
+    };
+  }
+
+  /**
+   * Get parsing confidence score from 2-stage AI workflow
    */
   static async getParsingConfidence(ticket: ParsedTicket): Promise<number> {
-    // If ticket was parsed by AI, confidence is typically high
-    if (config.ENABLE_AI_INTEGRATION && await GeminiService.isAvailable()) {
-      return 0.95; // Gemini 2.5 Pro has high accuracy
+    // If we have a recent OpenRouter response, use its confidence
+    if (this.lastOpenRouterResponse?.responseGeneration?.confidence) {
+      return this.lastOpenRouterResponse.responseGeneration.confidence;
     }
-    
+
+    // If we have a legacy 2-stage response, use its confidence
+    if (this.lastTwoStageResponse?.responseGeneration?.confidence) {
+      return this.lastTwoStageResponse.responseGeneration.confidence;
+    }
+
+    // If OpenRouter is available, confidence is typically high
+    if (await OpenRouterAIParser.isOpenRouterAvailable()) {
+      return 0.95; // OpenRouter models have high accuracy
+    }
+
     // Fallback to regex parser confidence calculation
     return TicketParser.getParsingConfidence(ticket);
   }
 
   /**
-   * Check if AI parsing is available
+   * Check if OpenRouter AI parsing is available
    */
   static async isAIAvailable(): Promise<boolean> {
-    return GeminiService.isAvailable();
+    return await OpenRouterAIParser.isOpenRouterAvailable();
+  }
+
+  /**
+   * Get the last 2-stage AI response for detailed analysis
+   */
+  static getLastTwoStageResponse(): TwoStageAIResponse | null {
+    return this.lastTwoStageResponse;
+  }
+
+  /**
+   * Get response generation data from the last workflow
+   */
+  static getLastResponseGeneration() {
+    // Prefer OpenRouter response if available
+    if (this.lastOpenRouterResponse?.responseGeneration) {
+      return this.lastOpenRouterResponse.responseGeneration;
+    }
+    // Fallback to legacy 2-stage response
+    return this.lastTwoStageResponse?.responseGeneration || null;
+  }
+
+  /**
+   * Get the last OpenRouter response for detailed analysis
+   */
+  static getLastOpenRouterResponse(): OpenRouterResponse | null {
+    return this.lastOpenRouterResponse;
+  }
+
+  /**
+   * Get OpenRouter processing statistics
+   */
+  static getOpenRouterStats() {
+    return OpenRouterAIParser.getProcessingStats();
+  }
+
+  /**
+   * Get available OpenRouter models
+   */
+  static getAvailableModels() {
+    return OpenRouterAIParser.getAvailableModels();
+  }
+
+  /**
+   * Check if both AI stages are available (legacy method)
+   */
+  static async getTwoStageAvailability(): Promise<{ stage1: boolean; stage2: boolean }> {
+    const isAvailable = await this.isAIAvailable();
+    return { stage1: isAvailable, stage2: isAvailable };
+  }
+
+  /**
+   * Clear all cached responses
+   */
+  static clearCache(): void {
+    this.lastOpenRouterResponse = null;
+    this.lastTwoStageResponse = null;
+    OpenRouterAIParser.clearLastResponse();
   }
 }

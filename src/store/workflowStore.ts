@@ -1,7 +1,7 @@
 // src/store/workflowStore.ts
 
 import { create } from 'zustand';
-import { WorkflowState, ParsedTicket, VisualWorkflow, WorkflowNode, WorkflowEdge } from '../types';
+import { WorkflowState, ParsedTicket, VisualWorkflow, WorkflowNode, WorkflowEdge, TwoStageAIResponse } from '../types';
 import { AITicketParser } from '../utils/aiTicketParser';
 import { TicketService } from '../services/ticketService';
 import { Ticket } from '../lib/supabase';
@@ -135,9 +135,21 @@ interface ExtendedWorkflowState extends WorkflowState {
   savedTicket: Ticket | null;
   recentTickets: Ticket[];
   isEditMode: boolean;
+  // 2-Stage AI Workflow Data
+  lastTwoStageResponse: TwoStageAIResponse | null;
+  responseGeneration: {
+    customerResponse: string;
+    internalDocumentation: string;
+    technicalSolutions: string[];
+    resolutionSteps: string[];
+    confidence: number;
+  } | null;
   loadRecentTickets: () => Promise<void>;
   setEditMode: (enabled: boolean) => void;
   updateTicket: (updates: Partial<ParsedTicket>) => void;
+  // 2-Stage AI Methods
+  getTwoStageResponse: () => TwoStageAIResponse | null;
+  getResponseGeneration: () => ExtendedWorkflowState['responseGeneration'];
 }
 
 export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
@@ -148,31 +160,51 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
   savedTicket: null,
   recentTickets: [],
   isEditMode: false,
+  // 2-Stage AI Workflow State
+  lastTwoStageResponse: null,
+  responseGeneration: null,
 
   parseTicket: async (rawText: string) => {
     console.log('parseTicket called with text length:', rawText.length);
-    set({ isProcessing: true, error: null });
-    
+    set({ isProcessing: true, error: null, lastTwoStageResponse: null, responseGeneration: null });
+
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('Attempting to parse ticket...');
+
+      console.log('Attempting to parse ticket with 2-stage AI workflow...');
       const parsedTicket = await AITicketParser.parse(rawText);
-      
+
       if (!parsedTicket) {
         console.error('Ticket parsing returned null');
         throw new Error('Could not extract EDI information from the text. The parser is looking for: invoice numbers, PO numbers, company names, or EDI document types (810, 850, 856). Please check the console for debug information.');
       }
 
       console.log('Ticket parsed successfully:', parsedTicket);
-      set({ currentTicket: parsedTicket });
+
+      // Capture the 2-stage AI response data
+      const twoStageResponse = AITicketParser.getLastTwoStageResponse();
+      const responseGeneration = AITicketParser.getLastResponseGeneration();
+
+      console.log('2-Stage AI Response captured:', {
+        stage1Success: twoStageResponse?.stage1.success,
+        stage2Success: twoStageResponse?.stage2?.success,
+        hasResponseGeneration: !!responseGeneration,
+        totalProcessingTime: twoStageResponse?.totalProcessingTime + 'ms'
+      });
+
+      set({
+        currentTicket: parsedTicket,
+        lastTwoStageResponse: twoStageResponse,
+        responseGeneration: responseGeneration
+      });
+
       get().generateWorkflow(parsedTicket);
-      
+
     } catch (error) {
       console.error('Parse ticket error:', error);
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'An error occurred',
-        isProcessing: false 
+        isProcessing: false
       });
     }
   },
@@ -248,12 +280,21 @@ export const useWorkflowStore = create<ExtendedWorkflowState>((set, get) => ({
       }
       
       set({ currentTicket: updatedTicket });
-      
+
       // Regenerate workflow if needed
       if (updates.documentType || updates.errorType) {
         get().generateWorkflow(updatedTicket);
       }
     }
+  },
+
+  // 2-Stage AI Methods
+  getTwoStageResponse: () => {
+    return get().lastTwoStageResponse;
+  },
+
+  getResponseGeneration: () => {
+    return get().responseGeneration;
   }
 }));
 
@@ -279,4 +320,58 @@ export const useSavedTicket = () => {
 
 export const useEditMode = () => {
   return useWorkflowStore(state => state.isEditMode);
+};
+
+// OpenRouter AI Workflow Hooks
+export const useOpenRouterResponse = () => {
+  return useWorkflowStore(state => {
+    // Get the latest OpenRouter response from AITicketParser
+    return AITicketParser.getLastOpenRouterResponse();
+  });
+};
+
+export const useOpenRouterStats = () => {
+  return useWorkflowStore(state => {
+    return AITicketParser.getOpenRouterStats();
+  });
+};
+
+// Legacy 2-Stage AI Workflow Hooks (for backward compatibility)
+export const useTwoStageResponse = () => {
+  return useWorkflowStore(state => state.lastTwoStageResponse);
+};
+
+export const useResponseGeneration = () => {
+  return useWorkflowStore(state => {
+    // Prefer OpenRouter response generation if available
+    const openRouterResponse = AITicketParser.getLastOpenRouterResponse();
+    if (openRouterResponse?.responseGeneration) {
+      return openRouterResponse.responseGeneration;
+    }
+    // Fallback to legacy response generation
+    return state.responseGeneration;
+  });
+};
+
+export const useAIProcessingStats = () => {
+  return useWorkflowStore(state => {
+    const response = state.lastTwoStageResponse;
+    if (!response) return null;
+
+    return {
+      stage1: {
+        model: response.stage1.model,
+        success: response.stage1.success,
+        processingTime: response.stage1.processingTime
+      },
+      stage2: response.stage2 ? {
+        model: response.stage2.model,
+        success: response.stage2.success,
+        processingTime: response.stage2.processingTime,
+        tokensPerSecond: response.stage2.tokensPerSecond
+      } : null,
+      totalProcessingTime: response.totalProcessingTime,
+      overallSuccess: response.overallSuccess
+    };
+  });
 };

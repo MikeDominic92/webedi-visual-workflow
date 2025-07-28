@@ -103,3 +103,29 @@ export interface AIAnalysisState {
   progress: number;
   insights: string[];
 }
+
+// 2-Stage AI Workflow Types
+export interface AIStageResult {
+  stage?: 1 | 2;
+  model?: string; // Flexible model name to support OpenRouter and other providers
+  success: boolean;
+  data?: any;
+  error?: string;
+  processingTime: number;
+  tokensPerSecond?: number;
+}
+
+export interface TwoStageAIResponse {
+  stage1: AIStageResult; // Gemini 2.5 Pro parsing
+  stage2?: AIStageResult; // Kimi K2 response generation
+  parsedTicket?: ParsedTicket;
+  responseGeneration?: {
+    customerResponse: string;
+    internalDocumentation: string;
+    technicalSolutions: string[];
+    resolutionSteps: string[];
+    confidence: number;
+  };
+  totalProcessingTime: number;
+  overallSuccess: boolean;
+}
