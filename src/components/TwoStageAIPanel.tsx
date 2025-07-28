@@ -74,9 +74,9 @@ export const TwoStageAIPanel: React.FC = () => {
             </div>
             <div>
               <div className="font-medium text-white">
-                Stage 1: {isOpenRouter ? 'Gemini 2.0 Flash' : 'Gemini 2.5 Pro'}
+                Stage 1: {isOpenRouter ? 'Gemini 2.5 Pro with Thinking' : 'Gemini 2.5 Pro'}
               </div>
-              <div className="text-sm text-zinc-300">Context Processing & Parsing</div>
+              <div className="text-sm text-zinc-300">Advanced Reasoning & Analysis</div>
               <div className="text-xs text-zinc-400 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {formatTime(aiResponse.stage1.processingTime)}
@@ -105,9 +105,9 @@ export const TwoStageAIPanel: React.FC = () => {
             </div>
             <div>
               <div className="font-medium text-white">
-                Stage 2: {isOpenRouter ? 'Kimi K2' : 'Kimi K2 on Groq'}
+                Stage 2: {isOpenRouter ? 'Gemini 2.5 Flash with Thinking' : 'Kimi K2 on Groq'}
               </div>
-              <div className="text-sm text-zinc-300">Fast Response Generation</div>
+              <div className="text-sm text-zinc-300">Intelligent Response Generation</div>
               <div className="text-xs text-zinc-400 flex items-center gap-2">
                 <Clock className="w-3 h-3" />
                 {aiResponse.stage2 ? formatTime(aiResponse.stage2.processingTime) : 'N/A'}

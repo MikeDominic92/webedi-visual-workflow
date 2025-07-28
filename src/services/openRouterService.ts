@@ -7,13 +7,13 @@ const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Model configurations for different stages
 const MODELS = {
-  // Stage 1: Advanced reasoning and ticket parsing (using Gemini 2.0 Flash - working model)
-  STAGE1_PARSER: 'google/gemini-2.0-flash-exp:free',
-  // Stage 2: Fast response generation (using Kimi K2 via OpenRouter)
-  STAGE2_GENERATOR: 'moonshot/kimi-k2-0711-preview',
+  // Stage 1: Advanced reasoning and ticket parsing (using Gemini 2.5 Pro with thinking)
+  STAGE1_PARSER: 'google/gemini-2.5-pro',
+  // Stage 2: Fast response generation (using Gemini 2.5 Flash with thinking)
+  STAGE2_GENERATOR: 'google/gemini-2.5-flash',
   // Alternative models
-  FALLBACK_PARSER: 'meta-llama/llama-3.1-8b-instruct:free',
-  FALLBACK_GENERATOR: 'openai/gpt-4o-mini'
+  FALLBACK_PARSER: 'google/gemini-2.0-flash-thinking-exp:free',
+  FALLBACK_GENERATOR: 'openai/gpt-4o'
 };
 
 // Initialize OpenRouter client
@@ -59,34 +59,44 @@ export class OpenRouterService {
     const startTime = Date.now();
     
     try {
-      const prompt = `SYSTEM ROLE — Master EDI Troubleshooter & Ticket Analyzer (Cleo/DataTrans)
-You are an expert Senior Support Engineer specializing in X12/EDIFACT EDI, API integrations, and communication protocols (SFTP/AS2/HTTP). You analyze recordings, transcripts, and tickets to provide EXACT troubleshooting steps.
+      const prompt = `SYSTEM ROLE — Master EDI Troubleshooter & Ticket Analyzer with Advanced Reasoning
+You are an expert Senior Support Engineer specializing in X12/EDIFACT EDI, API integrations, and communication protocols (SFTP/AS2/HTTP). You have advanced reasoning capabilities that allow you to think through complex problems step-by-step.
+
+════════════════ THINKING APPROACH ════════════════
+Before analyzing the ticket, think through:
+1. What type of EDI issue is this likely to be?
+2. What patterns or keywords indicate specific problems?
+3. What context clues can help identify missing information?
+4. What are the relationships between different data points?
 
 ════════════════ INPUT HANDLING ════════════════
-STAGE 1: Information Extraction
-If given VIDEO/AUDIO: Extract all ticket details from the conversation
-If given TRANSCRIPT: Parse for ticket information
-If given FILLED TICKET: Skip to STAGE 2
+STAGE 1: Information Extraction with Reasoning
+- Analyze the text to understand the context
+- Identify explicit and implicit information
+- Make intelligent inferences when data is incomplete
+- Consider EDI domain knowledge to fill gaps
+
 Always extract: Customer name, Company name, Company ID (WebEDI ID), Phone number, Email, Issue description, Error messages, Document types, Trading partners, Message IDs, Integration Type, Priority.
 
-STAGE 2: Auto-populate this template
-Customer name:
-Company name:
-Company ID number: [WebEDI ID]
-Phone number:
-Email:
-Trading Partner:
-Document Types:
-Error/Issue:
-Message IDs/Control Numbers:
-Integration Type: [if mentioned]
-Priority: [if mentioned]
+STAGE 2: Intelligent Auto-population
+Think through each field:
+- If trading partner is mentioned but not supplier/buyer, infer the relationship
+- If error codes are present, determine the error type category
+- If document numbers are mentioned, identify as message IDs/control numbers
+- Use context to determine priority if not explicitly stated
+
+════════════════ REASONING PROCESS ════════════════
+Think step-by-step about:
+1. What is the core issue being reported?
+2. Which EDI documents are involved (810/850/856)?
+3. What is the business impact?
+4. What additional context can be inferred?
 
 ════════════════ EXTRACTION ════════════════
-Extract the information from this ticket:
+Extract and reason about the information from this ticket:
 ${rawText}
 
-IMPORTANT: Return ONLY a valid JSON object with the extracted information. No additional text or formatting.
+IMPORTANT: Use your reasoning capabilities to provide the most complete and accurate extraction possible. Return ONLY a valid JSON object with the extracted information. No additional text or formatting.
 
 Return JSON in this format:
 {
@@ -117,8 +127,8 @@ Return JSON in this format:
       const completion = await openRouter.chat.completions.create({
         model: MODELS.STAGE1_PARSER,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 2000,
+        temperature: 0.1,  // Low temperature for consistent reasoning
+        max_tokens: 4000,  // Increased for detailed thinking
         top_p: 0.9
       });
 
@@ -164,31 +174,59 @@ Return JSON in this format:
     const startTime = Date.now();
     
     try {
-      const prompt = `You are an expert EDI support engineer. Based on the parsed ticket information, generate comprehensive support responses.
+      const prompt = `You are an expert EDI support engineer with advanced reasoning and problem-solving capabilities. Use your thinking abilities to generate comprehensive, well-reasoned support responses.
 
-Ticket Information:
+════════════════ REASONING APPROACH ════════════════
+Think through:
+1. Root cause analysis - What is the underlying issue?
+2. Impact assessment - How does this affect the customer's business?
+3. Solution strategy - What are the most effective resolution paths?
+4. Prevention measures - How can this be avoided in the future?
+
+════════════════ TICKET INFORMATION ════════════════
 - Customer: ${parsedTicket.customerName || parsedTicket.companyName}
 - Trading Partner: ${parsedTicket.tradingPartner}
 - Document Type: ${parsedTicket.documentType}
 - Issue: ${parsedTicket.issueDescription || parsedTicket.rawText.substring(0, 200)}
 - Error Type: ${parsedTicket.errorType}
+- Integration Type: ${parsedTicket.integationType || 'Not specified'}
+- Priority: ${parsedTicket.priority || 'Standard'}
 
-Generate responses in the following JSON format:
+════════════════ THINKING PROCESS ════════════════
+Consider:
+1. EDI standards and best practices for ${parsedTicket.documentType} documents
+2. Common integration issues between trading partners
+3. Technical implications of the error type
+4. Business impact and urgency based on priority
+5. Multiple solution approaches ranked by effectiveness
+
+════════════════ RESPONSE GENERATION ════════════════
+Generate responses with deep reasoning in the following JSON format:
 {
-  "customerResponse": "Professional response to send to the customer explaining the issue and next steps",
-  "internalDocumentation": "Detailed technical notes for internal team documentation",
-  "technicalSolutions": ["Solution 1", "Solution 2", "Solution 3"],
-  "resolutionSteps": ["Step 1", "Step 2", "Step 3", "Step 4"],
-  "confidence": 0.92
+  "customerResponse": "Professional response with clear explanation of the issue, business impact, and next steps. Show empathy and understanding of their situation.",
+  "internalDocumentation": "Detailed technical analysis including root cause, system interactions, configuration details, and preventive measures",
+  "technicalSolutions": [
+    "Primary solution with reasoning",
+    "Alternative approach if primary fails", 
+    "Long-term preventive solution"
+  ],
+  "resolutionSteps": [
+    "Immediate action to restore service",
+    "Root cause verification step",
+    "Implementation of fix",
+    "Testing and validation",
+    "Monitoring and follow-up"
+  ],
+  "confidence": 0.95
 }
 
-Make the customer response professional and reassuring. Include specific technical solutions and clear resolution steps.`;
+Use your advanced reasoning to provide thorough, actionable, and contextually appropriate responses.`;
 
       const completion = await openRouter.chat.completions.create({
         model: MODELS.STAGE2_GENERATOR,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 3000,
+        temperature: 0.2,  // Slightly lower for more focused reasoning
+        max_tokens: 5000,  // Increased for comprehensive responses with reasoning
         top_p: 0.9
       });
 
@@ -239,7 +277,7 @@ Make the customer response professional and reassuring. Include specific technic
     const totalStartTime = Date.now();
     
     // Stage 1: Parse ticket
-    console.log('🚀 Starting Stage 1: Ticket Parsing with', MODELS.STAGE1_PARSER);
+    console.log('🚀 Starting Stage 1: Advanced Reasoning & Analysis with', MODELS.STAGE1_PARSER);
     const stage1Result = await this.parseTicket(rawText);
     
     let stage2Result: OpenRouterStageResult | undefined;
@@ -276,7 +314,7 @@ Make the customer response professional and reassuring. Include specific technic
       };
 
       // Stage 2: Generate responses
-      console.log('🚀 Starting Stage 2: Response Generation with', MODELS.STAGE2_GENERATOR);
+      console.log('🚀 Starting Stage 2: Intelligent Response Generation with', MODELS.STAGE2_GENERATOR);
       stage2Result = await this.generateResponses(parsedTicket);
       
       if (stage2Result.success && stage2Result.data) {
