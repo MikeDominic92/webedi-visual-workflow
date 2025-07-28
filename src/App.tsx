@@ -12,6 +12,7 @@ import CustomerSearch from './components/CustomerSearch';
 import CustomerProfile from './components/CustomerProfile';
 import RecentTickets from './components/RecentTickets';
 import CustomerInfoBadge from './components/CustomerInfoBadge';
+import TicketInfoDisplay from './components/TicketInfoDisplay';
 import { TwoStageAIPanel } from './components/TwoStageAIPanel';
 import { useWorkflow, useParsedTicket, useWorkflowError, useWorkflowStore, useEditMode } from './store/workflowStore';
 import { Company, Ticket } from './lib/supabase';
@@ -20,65 +21,6 @@ import AIStatusIndicator from './components/AIStatusIndicator';
 import { LocalCustomerService } from './services/localCustomerService';
 import { useCustomerData } from './hooks/useCustomerData';
 
-const TicketDetails: React.FC = () => {
-  const ticket = useParsedTicket();
-  
-  if (!ticket) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="bg-white rounded-lg shadow-lg p-6"
-    >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        Ticket Analysis
-      </h3>
-      
-      <div className="space-y-3 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Document Type:</span>
-          <span className="font-medium">{ticket.documentType}</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="text-gray-600">Supplier:</span>
-          <span className="font-medium">{ticket.supplier}</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="text-gray-600">Buyer:</span>
-          <span className="font-medium">{ticket.buyer}</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="text-gray-600">Error Type:</span>
-          <span className="font-medium text-red-600">{ticket.errorType}</span>
-        </div>
-        
-        {ticket.errorCode && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">Error Code:</span>
-            <span className="font-medium">{ticket.errorCode}</span>
-          </div>
-        )}
-        
-        {ticket.affectedPOs.length > 0 && (
-          <div>
-            <span className="text-gray-600">Affected POs:</span>
-            <div className="mt-1">
-              {ticket.affectedPOs.map((po, index) => (
-                <span key={index} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-2 mt-1">
-                  {po}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-};
 
 function App() {
   const workflow = useWorkflow();
@@ -201,6 +143,20 @@ function App() {
                   )}
                 </>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Ticket Info Display - Show detailed information in organized boxes */}
+        <AnimatePresence>
+          {ticket && !isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mt-6"
+            >
+              <TicketInfoDisplay ticket={ticket} />
             </motion.div>
           )}
         </AnimatePresence>
