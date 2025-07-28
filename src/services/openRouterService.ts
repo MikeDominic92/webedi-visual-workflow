@@ -2,15 +2,15 @@ import OpenAI from 'openai';
 import { ParsedTicket } from '../types';
 
 // OpenRouter API configuration
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = process.env.REACT_APP_OPENROUTER_API_KEY || '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';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Model configurations for different stages
 const MODELS = {
-  // Stage 1: Context processing and ticket parsing (using Gemini 2.0 Flash via OpenRouter)
+  // Stage 1: Advanced reasoning and ticket parsing (using Gemini 2.0 Flash - working model)
   STAGE1_PARSER: 'google/gemini-2.0-flash-exp:free',
-  // Stage 2: Fast response generation (using Claude 3.5 Haiku for speed)
-  STAGE2_GENERATOR: 'anthropic/claude-3.5-haiku:beta',
+  // Stage 2: Fast response generation (using Kimi K2 via OpenRouter)
+  STAGE2_GENERATOR: 'moonshot/kimi-k2-0711-preview',
   // Alternative models
   FALLBACK_PARSER: 'meta-llama/llama-3.1-8b-instruct:free',
   FALLBACK_GENERATOR: 'openai/gpt-4o-mini'
@@ -107,8 +107,15 @@ Respond with a JSON object in this exact format:
         throw new Error('No response from OpenRouter');
       }
 
-      // Parse JSON response
-      const parsedData = JSON.parse(responseText);
+      // Parse JSON response - handle markdown-wrapped JSON
+      let cleanedResponse = responseText;
+      if (responseText.includes('```json')) {
+        cleanedResponse = responseText.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+      } else if (responseText.includes('```')) {
+        cleanedResponse = responseText.replace(/```\s*/g, '').trim();
+      }
+
+      const parsedData = JSON.parse(cleanedResponse);
       
       return {
         success: true,
@@ -170,8 +177,15 @@ Make the customer response professional and reassuring. Include specific technic
         throw new Error('No response from OpenRouter');
       }
 
-      // Parse JSON response
-      const responseData = JSON.parse(responseText);
+      // Parse JSON response - handle markdown-wrapped JSON
+      let cleanedResponse = responseText;
+      if (responseText.includes('```json')) {
+        cleanedResponse = responseText.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+      } else if (responseText.includes('```')) {
+        cleanedResponse = responseText.replace(/```\s*/g, '').trim();
+      }
+
+      const responseData = JSON.parse(cleanedResponse);
       
       // Calculate tokens per second (estimate)
       const estimatedTokens = responseText.length / 4; // Rough estimate

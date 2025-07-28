@@ -105,7 +105,7 @@ export const TwoStageAIPanel: React.FC = () => {
             </div>
             <div>
               <div className="font-medium text-gray-900">
-                Stage 2: {isOpenRouter ? 'Claude 3.5 Haiku' : 'Kimi K2 on Groq'}
+                Stage 2: {isOpenRouter ? 'Kimi K2' : 'Kimi K2 on Groq'}
               </div>
               <div className="text-sm text-gray-600">Fast Response Generation</div>
               <div className="text-xs text-gray-500 flex items-center gap-2">
@@ -161,7 +161,7 @@ export const TwoStageAIPanel: React.FC = () => {
                 <div className="text-sm font-medium text-gray-700">Processing Pipeline</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {isOpenRouter ? (
-                    <>Gemini 2.0 Flash → {aiResponse.stage2 ? 'Claude 3.5 Haiku' : 'Stage 2 Skipped'}</>
+                    <>Gemini 2.0 Flash → {aiResponse.stage2 ? 'Kimi K2' : 'Stage 2 Skipped'}</>
                   ) : (
                     <>Gemini 2.5 Pro → {aiResponse.stage2 ? 'Kimi K2 on Groq' : 'Stage 2 Skipped'}</>
                   )}

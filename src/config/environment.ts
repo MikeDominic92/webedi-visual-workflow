@@ -12,7 +12,7 @@ export const config = {
   ENABLE_ANALYTICS: process.env.REACT_APP_ENABLE_ANALYTICS === 'true',
 
   // AI Configuration - Unified OpenRouter API
-  OPENROUTER_API_KEY: process.env.REACT_APP_OPENROUTER_API_KEY || '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',
+  OPENROUTER_API_KEY: process.env.REACT_APP_OPENROUTER_API_KEY || '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',
 
   // Legacy API keys (deprecated - now using OpenRouter)
   GEMINI_API_KEY: process.env.REACT_APP_GEMINI_API_KEY || '',
