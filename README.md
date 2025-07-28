@@ -251,11 +251,11 @@ The application features a unified AI architecture powered by OpenRouter, provid
 - Processes large context windows with high accuracy
 - Free tier available for cost optimization
 
-**Stage 2: Response Generation** (Claude 3.5 Haiku)
+**Stage 2: Response Generation** (Kimi K2)
 - Generates customer-facing responses and technical solutions
 - Creates resolution steps and internal documentation
-- Fast processing with high-quality output
-- Optimized for speed and cost efficiency
+- Ultra-fast processing with Moonshot AI's 1T parameter model
+- Optimized for speed with 185+ tokens/second generation
 
 ### 🔧 Configuration
 
