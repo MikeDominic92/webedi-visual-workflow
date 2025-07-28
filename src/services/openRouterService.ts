@@ -271,7 +271,7 @@ Make the customer response professional and reassuring. Include specific technic
         issueDescription: stage1Result.data.issueDescription || stage1Result.data.errorDescription || 'No description available',
         ticketTitle: stage1Result.data.ticketTitle,
         messageIds: stage1Result.data.messageIds,
-        integrationType: stage1Result.data.integrationType,
+        integationType: stage1Result.data.integrationType,
         priority: stage1Result.data.priority
       };
 
