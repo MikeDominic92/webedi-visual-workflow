@@ -59,35 +59,57 @@ export class OpenRouterService {
     const startTime = Date.now();
     
     try {
-      const prompt = `You are an expert EDI (Electronic Data Interchange) support analyst. Parse the following EDI support ticket and extract structured information.
+      const prompt = `SYSTEM ROLE — Master EDI Troubleshooter & Ticket Analyzer (Cleo/DataTrans)
+You are an expert Senior Support Engineer specializing in X12/EDIFACT EDI, API integrations, and communication protocols (SFTP/AS2/HTTP). You analyze recordings, transcripts, and tickets to provide EXACT troubleshooting steps.
 
-IMPORTANT: Respond with ONLY a valid JSON object, no additional text or formatting.
+════════════════ INPUT HANDLING ════════════════
+STAGE 1: Information Extraction
+If given VIDEO/AUDIO: Extract all ticket details from the conversation
+If given TRANSCRIPT: Parse for ticket information
+If given FILLED TICKET: Skip to STAGE 2
+Always extract: Customer name, Company name, Company ID (WebEDI ID), Phone number, Email, Issue description, Error messages, Document types, Trading partners, Message IDs, Integration Type, Priority.
 
-Extract the following information:
-- Customer information (company name, contact details)
-- Trading partner information
-- EDI document types involved (810 Invoice, 856 ASN, 850 PO, etc.)
-- Error description and type
-- Priority level
-- Any transaction IDs or reference numbers
+STAGE 2: Auto-populate this template
+Customer name:
+Company name:
+Company ID number: [WebEDI ID]
+Phone number:
+Email:
+Trading Partner:
+Document Types:
+Error/Issue:
+Message IDs/Control Numbers:
+Integration Type: [if mentioned]
+Priority: [if mentioned]
 
-Raw ticket text:
+════════════════ EXTRACTION ════════════════
+Extract the information from this ticket:
 ${rawText}
 
-Respond with a JSON object in this exact format:
+IMPORTANT: Return ONLY a valid JSON object with the extracted information. No additional text or formatting.
+
+Return JSON in this format:
 {
   "id": "generated-id",
-  "customerName": "string",
-  "companyName": "string",
-  "tradingPartner": "string",
-  "documentType": "810",
-  "errorType": "string",
-  "issueDescription": "string",
-  "supplier": "string",
-  "buyer": "string",
-  "affectedPOs": ["string"],
-  "action": "rejection",
-  "timestamp": "2024-01-01T00:00:00.000Z",
+  "ticketTitle": "[Company ID] [Company Name] - [Technical Issue Summary]",
+  "customerName": "extracted customer name",
+  "companyName": "extracted company name",
+  "companyId": "extracted WebEDI ID number",
+  "phoneNumber": "extracted phone",
+  "email": "extracted email",
+  "tradingPartner": "extracted trading partner",
+  "documentType": "extracted document type (810/850/856 etc)",
+  "errorType": "extracted error type",
+  "errorCode": "extracted error code if any",
+  "issueDescription": "detailed issue description",
+  "messageIds": ["extracted message IDs or control numbers"],
+  "integrationType": "WebEDI/AS2/API/FTP etc",
+  "priority": "extracted priority",
+  "supplier": "extracted supplier or use company name",
+  "buyer": "extracted buyer or use trading partner",
+  "affectedPOs": ["extracted PO numbers"],
+  "action": "rejection/error/issue type",
+  "timestamp": "current ISO timestamp",
   "rawText": "original ticket text",
   "confidence": 0.95
 }`;
@@ -229,8 +251,8 @@ Make the customer response professional and reassuring. Include specific technic
       parsedTicket = {
         id: stage1Result.data.id || `ticket-${Date.now()}`,
         documentType: stage1Result.data.documentType || '810',
-        supplier: stage1Result.data.supplier || stage1Result.data.tradingPartner || 'Unknown Supplier',
-        buyer: stage1Result.data.buyer || stage1Result.data.customerName || 'Unknown Buyer',
+        supplier: stage1Result.data.supplier || stage1Result.data.companyName || 'Unknown Supplier',
+        buyer: stage1Result.data.buyer || stage1Result.data.tradingPartner || 'Unknown Buyer',
         errorType: stage1Result.data.errorType || 'Unknown Error',
         errorCode: stage1Result.data.errorCode,
         affectedPOs: stage1Result.data.affectedPOs || [],
@@ -242,8 +264,15 @@ Make the customer response professional and reassuring. Include specific technic
         // Customer Information
         customerName: stage1Result.data.customerName,
         companyName: stage1Result.data.companyName || stage1Result.data.customerName,
+        companyId: stage1Result.data.companyId,
+        phoneNumber: stage1Result.data.phoneNumber,
+        email: stage1Result.data.email,
         // Issue Details
-        issueDescription: stage1Result.data.issueDescription || stage1Result.data.errorDescription || 'No description available'
+        issueDescription: stage1Result.data.issueDescription || stage1Result.data.errorDescription || 'No description available',
+        ticketTitle: stage1Result.data.ticketTitle,
+        messageIds: stage1Result.data.messageIds,
+        integrationType: stage1Result.data.integrationType,
+        priority: stage1Result.data.priority
       };
 
       // Stage 2: Generate responses
