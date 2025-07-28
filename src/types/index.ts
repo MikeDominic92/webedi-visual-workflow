@@ -32,6 +32,7 @@ export interface ParsedTicket {
   // Issue Details
   issueDescription?: string;
   messageIds?: string[];
+  priority?: string;
   // Additional context
   documentTypes?: string[];
   errorDate?: Date;
