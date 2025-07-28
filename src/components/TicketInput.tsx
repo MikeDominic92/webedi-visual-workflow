@@ -229,19 +229,19 @@ const TicketInput: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => loadSampleTicket('invoice')}
-            className="px-3 py-1 text-sm bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+            className="px-3 py-1 text-sm bg-doc-810 text-white rounded-full hover:bg-doc-810/80 transition-colors-shadow"
           >
             810 Invoice Error
           </button>
           <button
             onClick={() => loadSampleTicket('purchase')}
-            className="px-3 py-1 text-sm bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-colors"
+            className="px-3 py-1 text-sm bg-doc-850 text-white rounded-full hover:bg-doc-850/80 transition-colors-shadow"
           >
             850 PO Error
           </button>
           <button
             onClick={() => loadSampleTicket('shipment')}
-            className="px-3 py-1 text-sm bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors"
+            className="px-3 py-1 text-sm bg-doc-856 text-white rounded-full hover:bg-doc-856/80 transition-colors-shadow"
           >
             856 ASN Error
           </button>
