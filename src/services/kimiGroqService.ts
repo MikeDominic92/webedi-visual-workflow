@@ -3,8 +3,11 @@ import { config } from '../config/environment';
 import { ParsedTicket } from '../types';
 
 // Initialize Groq client
+// Note: Using dangerouslyAllowBrowser because this is a frontend demo app
+// In production, API calls should be made through a backend server
 const groq = config.GROQ_API_KEY ? new Groq({
   apiKey: config.GROQ_API_KEY,
+  dangerouslyAllowBrowser: true
 }) : null;
 
 export interface KimiResponseGeneration {
