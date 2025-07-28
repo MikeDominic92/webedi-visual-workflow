@@ -106,15 +106,21 @@ function App() {
   }, [workflow]);
 
   return (
-    <div className="min-h-screen bg-black">
-      <header className="bg-zinc-900 border-b border-zinc-800">
+    <div className="min-h-screen bg-stealth-900 relative">
+      {/* Background effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-radial from-accent-blue/10 via-transparent to-transparent opacity-50" />
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-accent-purple/10 via-transparent to-transparent opacity-50" />
+      </div>
+      
+      <header className="glass-effect border-b border-stealth-600/50 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">
                 WebEDI Visual Workflow
               </h1>
-              <p className="text-sm text-zinc-400 mt-1">
+              <p className="text-sm text-stealth-200 mt-1">
                 Transform EDI tickets into intuitive subway map visualizations
               </p>
             </div>
@@ -129,10 +135,10 @@ function App() {
               )}
               <button
                 onClick={() => setShowErrorLibrary(!showErrorLibrary)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all duration-200 ${
                   showErrorLibrary 
-                    ? 'bg-white text-black' 
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    ? 'stealth-button-primary' 
+                    : 'stealth-button'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,14 +148,14 @@ function App() {
               </button>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-zinc-400">System Active</span>
+                <span className="text-sm text-stealth-200">System Active</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Ticket Info Header - Always visible when ticket exists */}
         <AnimatePresence>
           {ticket && (
@@ -163,7 +169,7 @@ function App() {
                 <div className="flex justify-end mb-2">
                   <button
                     onClick={() => setEditMode(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 stealth-button"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -210,15 +216,15 @@ function App() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 bg-red-900/20 border border-red-900/50 rounded-lg p-4"
+                  className="mt-4 bg-red-900/20 border border-red-500/50 rounded-lg p-4 backdrop-blur-sm"
                 >
                   <div className="flex items-start">
                     <svg className="w-5 h-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-400">Error Processing File</h3>
-                      <p className="text-sm text-red-300 mt-1">{error}</p>
+                      <h3 className="text-sm font-medium text-status-error">Error Processing File</h3>
+                      <p className="text-sm text-red-300/80 mt-1">{error}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -238,7 +244,7 @@ function App() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 h-[700px]"
+                  className="stealth-card glass-effect p-6 h-[700px]"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-white">
@@ -246,12 +252,12 @@ function App() {
                     </h2>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-zinc-400">
+                        <span className="text-sm text-stealth-200">
                           Confidence: {Math.round(workflow.metadata.confidence * 100)}%
                         </span>
-                        <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                        <div className="w-24 h-2 bg-stealth-700 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-emerald-500 transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500 shadow-emerald-500/50"
                             style={{ width: `${workflow.metadata.confidence * 100}%` }}
                           />
                         </div>
@@ -276,11 +282,11 @@ function App() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 h-[700px] flex items-center justify-center"
+                  className="stealth-card glass-effect p-6 h-[700px] flex items-center justify-center"
                 >
                   <div className="text-center">
                     <svg
-                      className="mx-auto h-24 w-24 text-zinc-600"
+                      className="mx-auto h-24 w-24 text-stealth-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -295,7 +301,7 @@ function App() {
                     <h3 className="mt-4 text-lg font-medium text-white">
                       No Workflow Generated
                     </h3>
-                    <p className="mt-2 text-sm text-zinc-400">
+                    <p className="mt-2 text-sm text-stealth-200">
                       Paste an EDI ticket or upload a file to visualize its workflow
                     </p>
                   </div>
@@ -369,9 +375,9 @@ function App() {
         )}
       </AnimatePresence>
 
-      <footer className="mt-12 pb-6">
+      <footer className="mt-12 pb-6 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-zinc-600">
+          <p className="text-center text-sm text-gradient">
             Phase 1 MVP • React Flow + TypeScript • Subway Map Visualization
           </p>
         </div>

@@ -129,9 +129,9 @@ const TicketInput: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-zinc-900 rounded-lg border border-zinc-800 p-6"
+      className="stealth-card glass-effect p-6"
     >
-      <h2 className="text-2xl font-bold text-white mb-4">
+      <h2 className="text-2xl font-bold text-white mb-4 neon-text">
         EDI Ticket Analyzer
       </h2>
       
@@ -139,7 +139,7 @@ const TicketInput: React.FC = () => {
         <div>
           <button
             onClick={() => setShowCustomerSearch(!showCustomerSearch)}
-            className="text-sm text-zinc-400 hover:text-white transition-colors mb-2"
+            className="text-sm text-stealth-200 hover:text-white transition-colors mb-2"
           >
             {showCustomerSearch ? '− Hide' : '+ Search'} Customer Database
           </button>
@@ -159,7 +159,7 @@ const TicketInput: React.FC = () => {
                 onAutoFill={handleAutoFill}
               />
               {selectedCompany && (
-                <div className="mt-2 p-2 bg-zinc-800 rounded text-sm text-zinc-300">
+                <div className="mt-2 p-2 bg-stealth-800 rounded text-sm text-stealth-100">
                   Selected: {selectedCompany.name}
                 </div>
               )}
@@ -167,14 +167,14 @@ const TicketInput: React.FC = () => {
           )}
         </div>
         <div>
-          <label htmlFor="ticket" className="block text-sm font-medium text-zinc-300 mb-2">
+          <label htmlFor="ticket" className="block text-sm font-medium text-stealth-100 mb-2">
             Paste your EDI ticket below:
           </label>
           <textarea
             id="ticket"
             value={ticketText}
             onChange={(e) => setTicketText(e.target.value)}
-            className="w-full h-40 px-3 py-2 bg-black border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent resize-none text-white placeholder-zinc-500"
+            className="stealth-input h-40 resize-none"
             placeholder="Example: 810 Invoice rejected by Walmart - duplicate invoice number..."
             disabled={isProcessing}
           />
@@ -184,7 +184,7 @@ const TicketInput: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-900/20 border border-red-900/50 text-red-400 px-4 py-3 rounded-md"
+            className="bg-red-900/20 border border-red-500/50 text-status-error px-4 py-3 rounded-md backdrop-blur-sm"
           >
             <p className="text-sm">{error}</p>
           </motion.div>
@@ -195,10 +195,10 @@ const TicketInput: React.FC = () => {
             onClick={handleSubmit}
             disabled={!ticketText.trim() || isProcessing}
             className={`
-              flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200
+              flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200
               ${ticketText.trim() && !isProcessing
-                ? 'bg-white hover:bg-zinc-200 text-black'
-                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                ? 'stealth-button-primary'
+                : 'bg-stealth-700 text-stealth-400 cursor-not-allowed opacity-50'
               }
             `}
           >
@@ -217,15 +217,15 @@ const TicketInput: React.FC = () => {
           
           <button
             onClick={clearWorkflow}
-            className="px-4 py-2 border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 transition-colors duration-200"
+            className="stealth-button border border-stealth-600"
           >
             Clear
           </button>
         </div>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-zinc-800">
-        <p className="text-sm text-zinc-400 mb-3">Try a sample ticket:</p>
+      <div className="mt-6 pt-6 border-t border-stealth-700">
+        <p className="text-sm text-stealth-200 mb-3">Try a sample ticket:</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => loadSampleTicket('invoice')}
@@ -248,11 +248,11 @@ const TicketInput: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-4 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
-        <h3 className="text-sm font-semibold text-zinc-300 mb-2">
+      <div className="mt-4 p-4 bg-stealth-800/50 rounded-lg border border-stealth-600 backdrop-blur-sm">
+        <h3 className="text-sm font-semibold text-stealth-100 mb-2">
           Supported Document Types:
         </h3>
-        <div className="grid grid-cols-3 gap-2 text-xs text-zinc-400">
+        <div className="grid grid-cols-3 gap-2 text-xs text-stealth-200">
           <div>• 810 - Invoice</div>
           <div>• 850 - Purchase Order</div>
           <div>• 856 - Ship Notice/ASN</div>
